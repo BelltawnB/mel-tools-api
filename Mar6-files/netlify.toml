@@ -1,0 +1,12 @@
+[build]
+  functions = "netlify/functions"
+
+# Proxy endpoint
+[[redirects]]
+  from = "/api/proxy"
+  to = "/.netlify/functions/proxy"
+  status = 200
+
+# Daily summary email — 7am UTC every day
+[functions."daily-summary"]
+  schedule = "0 7 * * *"

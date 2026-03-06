@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Indicator Quality Reviewer — Burgen Belltawn MEL Tools</title>
+<meta name="description" content="AI-powered indicator quality review tool. Paste your logframe, get instant SMART compliance checks and AI analysis.">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&family=IBM+Plex+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --terra: #C67B5C;
+  --cream: #FFF9F4;
+  --ink: #2A2220;
+  --ink-soft: #6B5D57;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: 'Outfit', sans-serif; background: #FAFAF7; color: #2D2D2D; overflow-x: hidden; }
+.site-nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  padding: 0.8rem 2rem;
+  display: flex; justify-content: space-between; align-items: center;
+  background: rgba(255, 249, 244, 0.92);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(61, 43, 34, 0.06);
+}
+.site-nav a { text-decoration: none; }
+.nav-logo {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.2rem; color: var(--ink); letter-spacing: -0.02em;
+}
+.nav-logo span { color: var(--terra); }
+.nav-links { display: flex; gap: 1.5rem; list-style: none; align-items: center; }
+.nav-links a {
+  color: var(--ink-soft); font-size: 0.85rem; font-weight: 400;
+  transition: color 0.2s;
+}
+.nav-links a:hover { color: var(--ink); }
+.nav-links .current { color: var(--terra); font-weight: 500; }
+#app { margin-top: 52px; min-height: calc(100vh - 52px); }
+@keyframes iqr-spin { to { transform: rotate(360deg); } }
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-thumb { background: #E8E8E0; border-radius: 3px; }
+::selection { background: #3D5A3D30; }
+@media (max-width: 768px) {
+  .site-nav { padding: 0.6rem 1rem; }
+  .nav-links { gap: 0.8rem; }
+  .nav-links a { font-size: 0.75rem; }
+}
+</style>
+</head>
+<body>
+<nav class="site-nav">
+  <a href="https://belltawnb.github.io/" class="nav-logo"><span>B.</span> Belltawn</a>
+  <ul class="nav-links">
+    <li><a href="https://belltawnb.github.io/#about">About</a></li>
+    <li><a href="https://belltawnb.github.io/#consortium">Consortia</a></li>
+    <li><a href="https://belltawnb.github.io/#tools" class="current">AI Tools</a></li>
+    <li><a href="https://belltawnb.github.io/#experience">Experience</a></li>
+    <li><a href="https://belltawnb.github.io/#contact">Contact</a></li>
+  </ul>
+</nav>
+<div id="app"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script type="text/babel" data-type="module">
+const { useState, useCallback, useRef, useEffect, Fragment } = React;
+
+// ── Proxy config ─────────────────────────────────────────────────────────────
+const PROXY_URL = "https://mel-tools-api.netlify.app/api/proxy";
+const TOOL_NAME = "indicator-quality-reviewer";
+
+// Wraps fetch to proxy, handles rate limit / spend cap responses
+async function callProxy(body) {
+  const res = await fetch(PROXY_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...body, _tool: TOOL_NAME })
+  });
+  if (res.status === 429) {
+    const j = await res.json();
+    throw new RateLimitError(j.message || "Daily limit reached. Try again in 24 hours, or download the code from GitHub to use your own API key.");
+  }
+  if (!res.ok) {
+    const j = await res.json().catch(() => ({}));
+    throw new Error(j.error || `API error ${res.status}`);
+  }
+  return res.json();
+}
+
+class RateLimitError extends Error {
+  constructor(msg) { super(msg); this.isRateLimit = true; }
+}
+
+
+
+// ─── DESIGN SYSTEM (Option B: Sage / Stone / Sans-serif) ─────────────────────
+const C = {
+  bg: "#FAFAF7", surface: "#FFFFFF", surfaceAlt: "#F5F5F0",
+  border: "#E8E8E0", borderSubtle: "#F0F0EA",
+  text: "#2D2D2D", textMid: "#555555", textMuted: "#8A9A8A", textDim: "#B0B8B0",
+  accent: "#3D5A3D", accentLight: "#EDF2ED", accentHover: "#4A6E4A",
+  pass: "#5A9E6F", passBg: "#F0F8F2", passBorder: "#D0E8D6",
+  warn: "#C49A3D", warnBg: "#FDF8EE", warnBorder: "#EEDDB8",
+  fail: "#C45A5A", failBg: "#FDF0F0", failBorder: "#E8C8C8",
+  info: "#5A8AC4", infoBg: "#F0F4FA", infoBorder: "#C8D8E8",
+};
+const F = {
+  display: "'DM Sans', sans-serif",
+  body: "'DM Sans', sans-serif",
+  mono: "'IBM Plex Mono', monospace",
+};
+const FONT_URL = "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap";
+
+const STATUS = {
+  pass: { color: C.pass, bg: C.passBg, border: C.passBorder, icon: "✓" },
+  warn: { color: C.warn, bg: C.warnBg, border: C.warnBorder, icon: "!" },
+  fail: { color: C.fail, bg: C.failBg, border: C.failBorder, icon: "✕" },
+  info: { color: C.info, bg: C.infoBg, border: C.infoBorder, icon: "i" },
+};
+
+// ─── FLAWED EXAMPLE LOGFRAME ─────────────────────────────────────────────────
+const EXAMPLE_LOGFRAME = `Results Level\tIndicator\tIndicator Definition\tUnit\tNumerator\tDenominator\tBaseline\tTarget\tDisaggregation\tMeans of Verification\tCollection Frequency\tSurvey Questions\tResponse Options\tAnalysis Method
+Outcome\tPercentage of beneficiaries with improved knowledge and food security practices\tImproved food security knowledge and practices among program participants\t%\tNumber of beneficiaries with improved knowledge and practices\t\t\t80%\tSex\tPost-distribution monitoring survey\t\tHow would you rate your food security knowledge? 1-Very good 2-Good 3-Average 4-Poor\tLikert scale 1-4\t
+Outcome\tPercentage of households with moderate or severe hunger on the Household Hunger Scale\tHHS determined per standard methodology\t%\tNumber of HH in each HHS category\tTotal HH surveyed\t45% moderate, 12% severe\t30% moderate, 8% severe\tSex of HoH, Location\tBaseline/endline survey\tBaseline/endline\tIn the past 4 weeks, was there ever no food to eat of any kind in your household?\tYes/No + frequency\tWeighted frequency by HHS category
+Output\tNumber of trainings conducted on nutrition practices\tCount of nutrition training sessions delivered by program staff\t#\tTotal trainings conducted\t\t0\t48\t\tActivity tracker\tMonthly\t\t\t
+Outcome\tMean reduced Coping Strategy Index score\tAverage rCSI score among surveyed households\tAverage\t\t\t18.4\t12.0\tSex of HoH, Displacement status\tPDM survey\tQuarterly\tIn the past 7 days, how many days did your household have to: rely on less preferred foods, borrow food, reduce number of meals, reduce portion size, restrict adult consumption\tFrequency 0-7 for each\tWeighted sum per standard rCSI methodology`;
+
+// ─── RULES ENGINE ────────────────────────────────────────────────────────────
+const VAGUE = ["improved","strengthened","enhanced","increased","better","effective","appropriate","adequate","sufficient"];
+const ACT_PAT = [/number of trainings/i,/number of distributions/i,/number of sessions/i,/# of trainings/i,/# trainings/i,/trainings conducted/i,/workshops held/i,/meetings held/i,/events organized/i];
+const OUT_AS_OUTC = [/# people trained/i,/# ?(of )?people trained/i,/number of people trained/i,/number of people reached/i,/# beneficiaries (trained|reached|served)/i];
+
+function detectMeth(name, def) {
+  const s = `${name} ${def}`.toLowerCase();
+  if (s.includes("food consumption score") || /\bfcs\b/.test(s)) return "FCS";
+  if (s.includes("household hunger scale") || /\bhhs\b/.test(s)) return "HHS";
+  if (s.includes("coping strategy") || /\brcsi\b/.test(s) || s.includes("reduced coping")) return "rCSI";
+  if (s.includes("dietary diversity") || /\bhdds\b/.test(s)) return "HDDS";
+  if (/\bmuac\b/.test(s) || s.includes("mid-upper arm")) return "MUAC";
+  if (s.includes("washington group") || /\bwgq?\b/.test(s)) return "WGQ";
+  return null;
+}
+
+function runChecks(d) {
+  const checks = [];
+  const nm = d.name || "", df = d.definition || "", combo = `${nm} ${df}`;
+  const isOI = ["outcome","impact"].includes((d.resultsLevel||"").toLowerCase());
+  const rl = (d.resultsLevel||"").toLowerCase();
+
+  // SMART
+  if (/\band\b/i.test(nm)) {
+    const pts = nm.split(/\band\b/i).map(s=>s.trim()).filter(s=>s.length>10);
+    if (pts.length>=2) checks.push({cat:"SMART",label:"Specific",status:"fail",msg:`Double-barreled: measures "${pts[0].substring(0,40)}…" AND "${pts[1].substring(0,40)}…". Split into separate indicators.`});
+    else checks.push({cat:"SMART",label:"Specific",status:"pass",msg:"Single concept."});
+  } else checks.push({cat:"SMART",label:"Specific",status:"pass",msg:"Single concept."});
+
+  const vague = VAGUE.filter(t=>new RegExp(`\\b${t}\\b`,"i").test(df));
+  if (!d.unit) checks.push({cat:"SMART",label:"Measurable",status:"fail",msg:"No unit of measure."});
+  else if (vague.length>0 && !d.analysisMethod) checks.push({cat:"SMART",label:"Measurable",status:"warn",msg:`Definition uses "${vague.join(", ")}" without analysis method to operationalize.`});
+  else checks.push({cat:"SMART",label:"Measurable",status:"pass",msg:"Unit defined."});
+
+  if (!d.target) checks.push({cat:"SMART",label:"Achievable",status:"warn",msg:"No target set."});
+  else checks.push({cat:"SMART",label:"Achievable",status:"pass",msg:"Target specified."});
+
+  if (!rl) checks.push({cat:"SMART",label:"Relevant",status:"warn",msg:"Results level not specified."});
+  else checks.push({cat:"SMART",label:"Relevant",status:"pass",msg:`${d.resultsLevel} level.`});
+
+  if (!d.frequency) checks.push({cat:"SMART",label:"Time-bound",status:"fail",msg:"No measurement timeframe. Most common SMART failure."});
+  else checks.push({cat:"SMART",label:"Time-bound",status:"pass",msg:`Frequency: ${d.frequency}.`});
+
+  // Structural
+  const unitLow = (d.unit||"").toLowerCase();
+  if ((unitLow==="%"||unitLow==="rate") && !d.denominator) checks.push({cat:"Structural",label:"Denominator",status:"fail",msg:`Unit is "${d.unit}" but no denominator defined.`});
+  else if (unitLow==="%"||unitLow==="rate") checks.push({cat:"Structural",label:"Denominator",status:"pass",msg:"Denominator defined."});
+
+  if (!d.baseline && isOI) checks.push({cat:"Structural",label:"Baseline",status:"fail",msg:"Outcome/impact requires pre-program baseline."});
+  else if (!d.baseline && rl==="output") checks.push({cat:"Structural",label:"Baseline",status:"info",msg:"No baseline. Output baselines typically zero."});
+  else if (d.baseline) checks.push({cat:"Structural",label:"Baseline",status:"pass",msg:"Baseline defined."});
+
+  const disagg = d.disaggregations || d.disagg || "";
+  const hasDis = typeof disagg === "string" ? disagg.trim().length > 0 : (Array.isArray(disagg) && disagg.length > 0);
+  if (hasDis && !d.sampling) checks.push({cat:"Structural",label:"Disagg ↔ Sampling",status:"warn",msg:"Disaggregation commitments but no sampling approach described."});
+
+  if (!d.analysisMethod && d.name) checks.push({cat:"Structural",label:"Analysis",status:"warn",msg:"No analysis method described."});
+  else if (d.analysisMethod) checks.push({cat:"Structural",label:"Analysis",status:"pass",msg:"Analysis method specified."});
+
+  // Design
+  if (isOI && ACT_PAT.some(p=>p.test(nm))) checks.push({cat:"Design",label:"Activity as outcome",status:"fail",msg:"Measures an activity, not a change. Outcomes should capture behavioral/condition changes."});
+  if (rl==="outcome" && (unitLow==="#"||unitLow==="number") && OUT_AS_OUTC.some(p=>p.test(nm))) checks.push({cat:"Design",label:"Output → Outcome",status:"warn",msg:"Looks like output placed at outcome level."});
+  const qualT = ["extent to which","degree of","level of","quality of"];
+  if (qualT.some(t=>df.toLowerCase().includes(t)) && !d.analysisMethod) checks.push({cat:"Design",label:"Qualitative",status:"warn",msg:"Qualitative framing without measurement scale."});
+  if (d.numerator && /\band\b/i.test(d.numerator)) {
+    const pts = d.numerator.split(/\band\b/i).map(s=>s.trim()).filter(s=>s.length>8);
+    if (pts.length>=2) checks.push({cat:"Design",label:"Numerator",status:"warn",msg:"Numerator contains 'and' — may combine distinct concepts."});
+  }
+
+  // Methodology
+  const meth = detectMeth(nm, df);
+  if (meth==="FCS") {
+    if (!d.denominator) checks.push({cat:"Methodology",label:"FCS: Denominator",status:"fail",msg:"FCS requires defined denominator."});
+    if (unitLow!=="%") checks.push({cat:"Methodology",label:"FCS: Unit",status:"warn",msg:"FCS typically reported as %."});
+    if (!/7.?day|seven.?day/i.test(combo)) checks.push({cat:"Methodology",label:"FCS: Recall",status:"warn",msg:"Standard FCS uses 7-day recall. Verify."});
+  }
+  if (meth==="HHS") {
+    if (!/3.?question|three.?question/i.test(combo)) checks.push({cat:"Methodology",label:"HHS: Structure",status:"info",msg:"Standard HHS uses 3 questions, 0-6 scale."});
+  }
+  if (meth==="rCSI") {
+    if (!/5 |five/i.test(combo)) checks.push({cat:"Methodology",label:"rCSI: Strategies",status:"info",msg:"Standard rCSI: 5 strategies with frequency weights."});
+  }
+  if (meth==="HDDS") {
+    if (!/12|twelve/i.test(combo)) checks.push({cat:"Methodology",label:"HDDS: Food groups",status:"info",msg:"Standard HDDS: 12 food groups."});
+    if (!/24.?hour/i.test(combo)) checks.push({cat:"Methodology",label:"HDDS: Recall",status:"info",msg:"Standard HDDS: 24-hour recall."});
+  }
+  if (meth==="MUAC") {
+    if (!/threshold|classification|sam|mam/i.test(combo)) checks.push({cat:"Methodology",label:"MUAC: Thresholds",status:"warn",msg:"Specify SAM/MAM/normal classification thresholds."});
+  }
+  if (meth==="WGQ") {
+    if (d.surveyQuestions && /\byes\b.*\bno\b|\bno\b.*\byes\b/i.test(d.surveyQuestions) && !/a lot of difficulty|cannot do/i.test(d.surveyQuestions)) checks.push({cat:"Methodology",label:"WGQ: Scale",status:"warn",msg:"WGQ uses 4-point scale, not yes/no."});
+  }
+
+  // Governance
+  const audience = d.audience || "";
+  if (/donor/i.test(audience) && /custom/i.test(d.indicatorType||"") && isOI) checks.push({cat:"Governance",label:"Campbell's Law",status:"info",msg:"Custom outcome for donor reporting — gaming risk."});
+
+  return checks;
+}
+
+// ─── AI PROMPTS ──────────────────────────────────────────────────────────────
+function buildPrompt(d) {
+  return `You are a senior MEL specialist reviewing an indicator for an international development/humanitarian program.
+
+CONTEXT: Only 2 of 159 Sphere indicators met all SMART criteria. Calibrate accordingly.
+
+INDICATOR DATA:
+${JSON.stringify(d, null, 2)}
+
+Review with EXACTLY these sections:
+
+## Construct Validity
+Does the survey question measure what the definition claims? Are response options appropriate?
+
+## Inter-rater Reliability
+Would two data collectors interpret this identically? Flag ambiguities.
+
+## Methodological Concerns
+For standard indicators (FCS/HHS/rCSI/HDDS/MUAC/WGQ), flag deviations. For custom, assess measurement defensibility.
+
+## Disaggregation Feasibility
+Does disagg plan match sampling? Will subgroup sizes be adequate?
+
+## Level Appropriateness
+Is this at the right results level?
+
+## Suggested Improvements
+SPECIFIC rewording of name, definition, and/or survey questions. Not vague advice — write the improved version.
+
+## What This Indicator Does NOT Measure
+Boundaries to prevent over-interpretation.
+
+Direct, specific, technical. Under 800 words.`;
+}
+
+function buildParsePrompt(text) {
+  return `You are a MEL data extraction specialist. Parse the following logframe/indicator table/proposal text and extract ALL indicators into a JSON array.
+
+IMPORTANT: Skip header rows, description rows, and section-header rows (rows that describe a Purpose or Output but don't contain an actual indicator). Only extract rows that have an actual measurable indicator.
+
+For each indicator, extract these fields (use null for missing):
+- id: indicator ID if present (e.g., "P1.1", "IR2.3") or generate one based on level (P=purpose/outcome, O=output, G=goal, IR=intermediate result) + sequential number
+- name: full indicator name/statement
+- definition: operational definition (KEEP BRIEF — summarize to 2-3 sentences max, do not reproduce full paragraphs)
+- resultsLevel: one of "input", "activity", "output", "outcome", "impact" (infer if not explicit)
+- unit: "%", "#", "average", "rate", "index", "scale", or other
+- numerator: numerator text (brief)
+- denominator: denominator text (brief)
+- baseline: baseline value (just the number/percentage, not full explanation)
+- target: target value (just the number/percentage)
+- disaggregations: comma-separated string of disaggregation categories
+- frequency: collection frequency
+- meansOfVerification: tool/survey name
+- surveyQuestions: actual survey question text if present (brief)
+- responseOptions: response format if present (brief)
+- analysisMethod: analysis approach if present (brief)
+- indicatorType: "standard" or "custom" (infer — if references FCS, HHS, rCSI etc, likely standard)
+- audience: who uses this data
+
+CRITICAL JSON RULES:
+- All string values must have newlines replaced with spaces. No literal newlines inside JSON strings.
+- Use null (not "null") for missing values.
+- Keep all values SHORT. Summarize long text to under 200 characters.
+- Double-check your JSON is valid before responding.
+
+INPUT TEXT:
+${text}
+
+Respond with ONLY a valid JSON array. No markdown backticks, no explanation, no preamble.`;
+}
+
+// Client-side TSV parser that handles quoted multi-line cells
+function parseTSV(text) {
+  const rows = [];
+  let currentRow = [];
+  let currentCell = "";
+  let inQuote = false;
+  let i = 0;
+
+  while (i < text.length) {
+    const ch = text[i];
+
+    if (inQuote) {
+      if (ch === '"') {
+        if (i + 1 < text.length && text[i + 1] === '"') {
+          currentCell += '"';
+          i += 2;
+          continue;
+        }
+        inQuote = false;
+        i++;
+        continue;
+      }
+      currentCell += ch;
+      i++;
+      continue;
+    }
+
+    if (ch === '"' && (currentCell === "" || currentCell.match(/^\s*$/))) {
+      inQuote = true;
+      currentCell = "";
+      i++;
+      continue;
+    }
+
+    if (ch === '\t') {
+      currentRow.push(currentCell.trim());
+      currentCell = "";
+      i++;
+      continue;
+    }
+
+    if (ch === '\n' || (ch === '\r' && text[i + 1] === '\n')) {
+      currentRow.push(currentCell.trim());
+      if (currentRow.some(cell => cell.length > 0)) {
+        rows.push(currentRow);
+      }
+      currentRow = [];
+      currentCell = "";
+      i += (ch === '\r') ? 2 : 1;
+      continue;
+    }
+
+    currentCell += ch;
+    i++;
+  }
+
+  // Last cell/row
+  currentRow.push(currentCell.trim());
+  if (currentRow.some(cell => cell.length > 0)) {
+    rows.push(currentRow);
+  }
+
+  return rows;
+}
+
+// Pre-process pasted table data: parse TSV, flatten multi-line cells, 
+// and convert to a cleaner format for the AI
+function preprocessTable(text) {
+  // Try TSV parsing first
+  const rows = parseTSV(text);
+  if (rows.length < 2) return text; // Not enough rows, pass as-is
+
+  const headers = rows[0];
+  // Rebuild as clean single-line TSV with multi-line content flattened
+  const cleanRows = [headers.map(h => h.replace(/[\n\r]+/g, " ")).join("\t")];
+
+  for (let r = 1; r < rows.length; r++) {
+    const row = rows[r];
+    // Skip rows that are all empty or nearly empty
+    if (row.filter(c => c.length > 0).length < 2) continue;
+    const cleanCells = row.map(cell => 
+      cell.replace(/[\n\r]+/g, " ")  // flatten newlines to spaces
+          .replace(/\s+/g, " ")       // collapse whitespace
+          .substring(0, 500)          // truncate very long cells
+    );
+    cleanRows.push(cleanCells.join("\t"));
+  }
+
+  return cleanRows.join("\n");
+}
+
+// ─── STYLES ──────────────────────────────────────────────────────────────────
+const cardStyle = { background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "16px 20px", marginBottom: 12 };
+const inputStyle = { width:"100%", boxSizing:"border-box", padding:"8px 10px", background:C.surfaceAlt, border:`1px solid ${C.border}`, borderRadius:4, color:C.text, fontFamily:F.body, fontSize:13, outline:"none" };
+const btnPrimary = { padding:"8px 16px", background:C.accent, color:"#fff", border:"none", borderRadius:6, fontFamily:F.body, fontWeight:600, fontSize:13, cursor:"pointer" };
+const btnOutline = { padding:"8px 16px", background:"transparent", color:C.accent, border:`1px solid ${C.border}`, borderRadius:6, fontFamily:F.body, fontWeight:500, fontSize:13, cursor:"pointer" };
+const tagStyle = { display:"inline-block", padding:"2px 8px", borderRadius:4, fontSize:10, fontFamily:F.mono, background:C.accentLight, color:C.accent, border:`1px solid ${C.border}` };
+
+// ─── SMALL COMPONENTS ────────────────────────────────────────────────────────
+function Dot({ status, style: s }) {
+  return <span style={{ display:"inline-block", width:8, height:8, borderRadius:3, background:STATUS[status].color, flexShrink:0, ...s }} />;
+}
+
+function Badge({ status }) {
+  const cfg = STATUS[status];
+  return <span style={{ display:"inline-flex", alignItems:"center", justifyContent:"center", width:18, height:18, borderRadius:4, background:cfg.bg, border:`1px solid ${cfg.border}`, color:cfg.color, fontSize:10, fontWeight:700, fontFamily:F.mono, flexShrink:0 }}>{cfg.icon}</span>;
+}
+
+function CheckRow({ c, open: defaultOpen }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const cfg = STATUS[c.status];
+  return (
+    <div onClick={()=>setOpen(!open)} style={{ padding:"7px 10px", cursor:"pointer", borderLeft:`2px solid ${cfg.border}`, background:open?cfg.bg:"transparent", borderRadius:"0 4px 4px 0", marginBottom:1, transition:"background 0.15s" }}>
+      <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+        <Badge status={c.status} />
+        <span style={{ fontFamily:F.mono, fontSize:11, color:cfg.color, fontWeight:500, minWidth:90 }}>{c.label}</span>
+        {!open && c.status!=="pass" && <span style={{ fontSize:11, color:C.textMuted, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1 }}>{c.msg.substring(0,70)}…</span>}
+        {open && c.status==="pass" && <span style={{ fontSize:11, color:C.textDim }}>{c.msg}</span>}
+      </div>
+      {open && c.status!=="pass" && <div style={{ marginTop:5, marginLeft:26, fontSize:12, color:C.text, lineHeight:1.5 }}>{c.msg}</div>}
+    </div>
+  );
+}
+
+function ScoreBar({ checks }) {
+  const ct = { pass:0, warn:0, fail:0, info:0 };
+  checks.forEach(c=>ct[c.status]++);
+  const total = checks.length || 1;
+  const lbl = ct.fail>0 ? "Significant Issues" : ct.warn>1 ? "Needs Attention" : "Ready";
+  const clr = ct.fail>0 ? C.fail : ct.warn>1 ? C.warn : C.pass;
+  return (
+    <div style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 14px", background:C.surfaceAlt, borderRadius:6, marginBottom:12, borderLeft:`3px solid ${clr}`, flexWrap:"wrap" }}>
+      <span style={{ padding:"2px 10px", borderRadius:4, fontWeight:600, fontSize:11, fontFamily:F.mono, background:`${clr}15`, color:clr }}>{lbl.toUpperCase()}</span>
+      <span style={{ color:C.pass, fontWeight:500, fontSize:12 }}>{ct.pass} pass</span>
+      <span style={{ color:C.warn, fontWeight:500, fontSize:12 }}>{ct.warn} warn</span>
+      <span style={{ color:C.fail, fontWeight:500, fontSize:12 }}>{ct.fail} fail</span>
+      {ct.info>0 && <span style={{ color:C.info, fontWeight:500, fontSize:12 }}>{ct.info} info</span>}
+      <div style={{ flex:1, minWidth:40 }} />
+      <div style={{ display:"flex", height:5, borderRadius:3, overflow:"hidden", width:100, background:C.border }}>
+        {ct.pass>0 && <div style={{ width:`${ct.pass/total*100}%`, background:C.pass }} />}
+        {ct.info>0 && <div style={{ width:`${ct.info/total*100}%`, background:C.info }} />}
+        {ct.warn>0 && <div style={{ width:`${ct.warn/total*100}%`, background:C.warn }} />}
+        {ct.fail>0 && <div style={{ width:`${ct.fail/total*100}%`, background:C.fail }} />}
+      </div>
+    </div>
+  );
+}
+
+function CatGroup({ cat, checks }) {
+  return (
+    <div style={{ marginBottom:14 }}>
+      <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4, padding:"0 4px" }}>
+        <span style={{ fontFamily:F.body, fontWeight:600, fontSize:11, color:C.textMuted, textTransform:"uppercase", letterSpacing:"0.05em" }}>{cat}</span>
+        <div style={{ flex:1, height:1, background:C.border }} />
+      </div>
+      {checks.map((c,i) => <CheckRow key={i} c={c} open={c.status==="fail"||c.status==="warn"} />)}
+    </div>
+  );
+}
+
+function AIPanel({ indicator }) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [isRateLimit, setIsRateLimit] = useState(false);
+
+  const run = async () => {
+    setLoading(true); setError(null); setIsRateLimit(false);
+    try {
+      const j = await callProxy({ model:"claude-sonnet-4-5-20250929", max_tokens:2500, messages:[{role:"user",content:buildPrompt(indicator)}] });
+      setResult(j.content?.map(b=>b.text||"").join("\n") || "No response.");
+    } catch(e) {
+      setError(e.message);
+      if (e.isRateLimit) setIsRateLimit(true);
+    }
+    finally { setLoading(false); }
+  };
+
+  const renderMd = (text) => text.split("\n").map((line, i) => {
+    if (line.startsWith("## ")) return <h4 key={i} style={{ fontFamily:F.body, fontSize:13, fontWeight:600, color:C.accent, marginTop:14, marginBottom:4 }}>{line.replace("## ","")}</h4>;
+    if (!line.trim()) return null;
+    const parts = line.split(/(\*\*[^*]+\*\*)/g);
+    return <p key={i} style={{ fontSize:12, color:C.text, margin:"3px 0", lineHeight:1.6 }}>{parts.map((p,j) => p.startsWith("**") ? <strong key={j} style={{fontWeight:600}}>{p.replace(/\*\*/g,"")}</strong> : p)}</p>;
+  });
+
+  if (!result && !loading && !error) return (
+    <div style={{ padding:"16px", textAlign:"center", border:`1px dashed ${C.border}`, borderRadius:6, marginTop:14, background:C.surface }}>
+      <div style={{ fontSize:12, color:C.textMuted, marginBottom:10 }}>AI adds construct validity, methodology review, and specific rewordings.</div>
+      <button onClick={run} style={btnPrimary}>Run AI Review</button>
+    </div>
+  );
+  if (loading) return (
+    <div style={{ padding:"20px", textAlign:"center", marginTop:14 }}>
+      <div style={{ display:"inline-block", width:18, height:18, border:`2px solid ${C.border}`, borderTopColor:C.accent, borderRadius:"50%", animation:"iqr-spin 0.8s linear infinite" }} />
+      <div style={{ fontSize:12, color:C.textMuted, marginTop:6 }}>Running AI review…</div>
+    </div>
+  );
+  if (error) return (
+    <div style={{ padding:14, background: isRateLimit ? "#FFF8F0" : C.failBg, border:`1px solid ${isRateLimit ? "#E8C4B4" : C.failBorder}`, borderRadius:8, marginTop:14, fontSize:12 }}>
+      {isRateLimit
+        ? <div>
+            <div style={{ fontWeight:600, color:"#B56A4A", marginBottom:6 }}>⏱ Daily limit reached</div>
+            <div style={{ color:"#6B5549", lineHeight:1.6 }}>{error}</div>
+            <a href="https://github.com/BelltawnB/mel-tools-api" target="_blank"
+               style={{ display:"inline-block", marginTop:10, color:"#C67B5C", fontWeight:500, textDecoration:"underline" }}>
+              Download the code on GitHub →
+            </a>
+          </div>
+        : <span style={{ color:C.fail }}>{error} <button onClick={run} style={{ ...btnPrimary, background:C.fail, fontSize:11, padding:"4px 12px", marginLeft:8 }}>Retry</button></span>
+      }
+    </div>
+  );
+  return (
+    <div style={{ marginTop:14 }}>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:6 }}>
+        <span style={{ fontFamily:F.mono, fontSize:11, color:C.accent, fontWeight:500 }}>AI REVIEW COMPLETE</span>
+        <button onClick={()=>{setResult(null);setTimeout(run,50);}} style={{ ...btnOutline, fontSize:10, padding:"3px 10px" }}>Re-run</button>
+      </div>
+      <div style={{ padding:"12px 16px", background:C.surfaceAlt, borderRadius:6, border:`1px solid ${C.border}` }}>{renderMd(result)}</div>
+    </div>
+  );
+}
+
+// ─── MAIN APP ────────────────────────────────────────────────────────────────
+const VIEWS = { INGEST:"ingest", TABLE:"table", REVIEW:"review" };
+const CAT_ORDER = ["SMART","Structural","Design","Methodology","Governance"];
+
+function IndicatorQualityReviewer() {
+  const [view, setView] = useState(VIEWS.INGEST);
+  const [rawInput, setRawInput] = useState("");
+  const [inputType, setInputType] = useState("paste-table");
+  const [indicators, setIndicators] = useState([]);
+  const [parsing, setParsing] = useState(false);
+  const [parseError, setParseError] = useState(null);
+  const [selectedIdx, setSelectedIdx] = useState(null);
+  const [checksMap, setChecksMap] = useState({});
+  const [editField, setEditField] = useState(null);
+  const [copyMsg, setCopyMsg] = useState("");
+  const fileRef = useRef();
+
+  const parseLogframe = async (text) => {
+    setParsing(true); setParseError(null);
+    try {
+      // Pre-process: if it looks like tab-separated data, parse and clean client-side
+      const cleaned = text.includes("\t") ? preprocessTable(text) : text;
+      
+      const j = await callProxy({ model:"claude-sonnet-4-5-20250929", max_tokens:4096, messages:[{role:"user",content:buildParsePrompt(cleaned)}] });
+      const raw = j.content?.map(b=>b.text||"").join("") || "[]";
+      // Robust JSON extraction: find the array in the response
+      let clean = raw.replace(/```json|```/g,"").trim();
+      // Find first [ and last ]
+      const firstBracket = clean.indexOf("[");
+      const lastBracket = clean.lastIndexOf("]");
+      if (firstBracket !== -1 && lastBracket > firstBracket) {
+        clean = clean.substring(firstBracket, lastBracket + 1);
+      }
+      // Fix common LLM JSON issues
+      clean = clean
+        .replace(/,\s*}/g, "}") // trailing commas in objects
+        .replace(/,\s*\]/g, "]") // trailing commas in arrays
+        .replace(/[\x00-\x1F\x7F]/g, (ch) => ch === "\n" || ch === "\r" || ch === "\t" ? ch : " ") // control chars
+        .replace(/\t/g, "  ") // tabs in strings
+        .replace(/\n\s*\n/g, "\n"); // double newlines
+      
+      let parsed;
+      try {
+        parsed = JSON.parse(clean);
+      } catch (jsonErr) {
+        // Last resort: try to fix unescaped quotes inside string values
+        // Replace unescaped newlines inside strings
+        const fixedNewlines = clean.replace(/"([^"]*?)"/g, (match) => {
+          return match.replace(/\n/g, "\\n").replace(/\r/g, "\\r");
+        });
+        try {
+          parsed = JSON.parse(fixedNewlines);
+        } catch (jsonErr2) {
+          // Final attempt: ask the model to fix its own JSON
+          const fixJ = await callProxy({ model:"claude-sonnet-4-5-20250929", max_tokens:4096, messages:[{role:"user",content:`Fix this malformed JSON array so it parses correctly. Return ONLY the fixed JSON array, nothing else:\n\n${clean}`}] });
+          const fixRaw = fixJ.content?.map(b=>b.text||"").join("") || "[]";
+          let fixClean = fixRaw.replace(/```json|```/g,"").trim();
+          const fb = fixClean.indexOf("[");
+          const lb = fixClean.lastIndexOf("]");
+          if (fb !== -1 && lb > fb) fixClean = fixClean.substring(fb, lb + 1);
+          fixClean = fixClean.replace(/,\s*}/g, "}").replace(/,\s*\]/g, "]");
+          parsed = JSON.parse(fixClean);
+        }
+      }
+      if (!Array.isArray(parsed) || parsed.length===0) throw new Error("No indicators found in input.");
+      setIndicators(parsed);
+      const cmap = {};
+      parsed.forEach((_,i) => { cmap[i] = runChecks(parsed[i]); });
+      setChecksMap(cmap);
+      setView(VIEWS.TABLE);
+    } catch(e) {
+      if (e.isRateLimit) {
+        setParseError(`⏱ Daily limit reached — ${e.message}`);
+      } else {
+        setParseError(`Parse failed: ${e.message}`);
+      }
+    }
+    finally { setParsing(false); }
+  };
+
+  const handleFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => { setRawInput(ev.target.result); };
+    reader.readAsText(file);
+  };
+
+  const loadExample = () => { setRawInput(EXAMPLE_LOGFRAME); setInputType("paste-table"); };
+
+  const selectIndicator = (idx) => { setSelectedIdx(idx); setView(VIEWS.REVIEW); };
+
+  const countIssues = (idx) => {
+    const ch = checksMap[idx] || [];
+    return { fail:ch.filter(c=>c.status==="fail").length, warn:ch.filter(c=>c.status==="warn").length };
+  };
+
+  const updateField = (idx, field, value) => {
+    setIndicators(prev => {
+      const next = [...prev];
+      next[idx] = { ...next[idx], [field]: value };
+      setChecksMap(prev2 => ({ ...prev2, [idx]: runChecks(next[idx]) }));
+      return next;
+    });
+  };
+
+  const flash = (msg) => { setCopyMsg(msg); setTimeout(()=>setCopyMsg(""), 2000); };
+
+  const copySummary = () => {
+    if (selectedIdx===null) return;
+    const ind = indicators[selectedIdx];
+    const ch = checksMap[selectedIdx] || [];
+    const lines = [`INDICATOR QUALITY REVIEW\n${"=".repeat(40)}\n`,`Indicator: ${ind.name}\nLevel: ${ind.resultsLevel||"—"}\n`];
+    const cats = {};
+    ch.forEach(c => { (cats[c.cat]=cats[c.cat]||[]).push(c); });
+    Object.entries(cats).forEach(([cat,items]) => { lines.push(`--- ${cat} ---`); items.forEach(c => lines.push(`[${c.status.toUpperCase()}] ${c.label}: ${c.msg}`)); lines.push(""); });
+    navigator.clipboard.writeText(lines.join("\n")); flash("Copied!");
+  };
+
+  const exportJSON = () => {
+    if (selectedIdx===null) return;
+    navigator.clipboard.writeText(JSON.stringify({ indicator: indicators[selectedIdx] }, null, 2)); flash("JSON copied!");
+  };
+
+  const selectedInd = selectedIdx !== null ? indicators[selectedIdx] : null;
+  const selectedChecks = selectedIdx !== null ? (checksMap[selectedIdx] || []) : [];
+  const grouped = {};
+  selectedChecks.forEach(c => { (grouped[c.cat] = grouped[c.cat] || []).push(c); });
+
+  const FIELDS = [
+    ["resultsLevel","Results Level"],["definition","Definition"],["unit","Unit"],
+    ["numerator","Numerator"],["denominator","Denominator"],["baseline","Baseline"],
+    ["target","Target"],["frequency","Frequency"],["disaggregations","Disaggregations"],
+    ["meansOfVerification","Means of Verification"],["surveyQuestions","Survey Questions"],
+    ["responseOptions","Response Options"],["analysisMethod","Analysis Method"],["indicatorType","Type"],
+  ];
+
+  return (
+    <div style={{ minHeight:"100vh", background:C.bg, fontFamily:F.body, color:C.text }}>
+      <style>{`
+        @import url('${FONT_URL}');
+        @keyframes iqr-spin { to { transform: rotate(360deg); } }
+        input:focus, textarea:focus, select:focus { border-color: ${C.accent} !important; }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: ${C.border}; border-radius: 3px; }
+        ::selection { background: ${C.accent}30; }
+        tr:hover td { background: ${C.surfaceAlt}; }
+      `}</style>
+
+      {/* HEADER */}
+      <div style={{ padding:"14px 24px", borderBottom:`1px solid ${C.border}`, background:C.surface, display:"flex", alignItems:"center", gap:12 }}>
+        <div>
+          <div style={{ fontFamily:F.display, fontWeight:700, fontSize:15, color:C.text }}>Indicator Quality Reviewer</div>
+          <div style={{ fontFamily:F.mono, fontSize:10, color:C.textDim, letterSpacing:"0.06em" }}>MEL TOOLS</div>
+        </div>
+        <div style={{ flex:1 }} />
+        {copyMsg && <span style={{ fontFamily:F.mono, fontSize:11, color:C.pass, fontWeight:500 }}>{copyMsg}</span>}
+        {indicators.length > 0 && (
+          <div style={{ display:"flex", gap:4 }}>
+            {[["ingest","Ingest"],["table","Indicators"],["review","Review"]].map(([v,l])=>(
+              <button key={v} onClick={()=>{ if(v==="review" && selectedIdx===null) return; setView(v); }}
+                style={{ ...btnOutline, fontSize:11, padding:"5px 12px", background:view===v?C.accentLight:"transparent", borderColor:view===v?C.accent:C.border, color:view===v?C.accent:C.textMuted, opacity:(v==="review"&&selectedIdx===null)?0.4:1 }}>
+                {l}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* NOTICE BANNER */}
+      <div style={{ background:"#FDF5F0", borderBottom:"1px solid #E8C4B4", padding:"8px 24px", display:"flex", alignItems:"center", gap:12, flexWrap:"wrap" }}>
+        <span style={{ fontSize:11, color:"#6B5549", lineHeight:1.5 }}>
+          🔒 This tool runs on a shared API — a daily usage limit applies.
+          Want unlimited access?{" "}
+          <a href="https://github.com/BelltawnB/mel-tools-api" target="_blank"
+             style={{ color:"#C67B5C", fontWeight:500, textDecoration:"underline" }}>
+            Download the code on GitHub
+          </a>{" "}
+          and use your own Anthropic API key.
+        </span>
+      </div>
+
+      {/* ═══ INGEST ═══ */}
+      {view === VIEWS.INGEST && (
+        <div style={{ maxWidth:720, margin:"0 auto", padding:"32px 24px" }}>
+          <h2 style={{ fontFamily:F.display, fontSize:20, fontWeight:700, marginBottom:4 }}>Paste or upload your logframe</h2>
+          <p style={{ fontSize:13, color:C.textMuted, marginBottom:20 }}>AI extracts indicators and auto-maps fields. You correct any mismatches before review.</p>
+
+          <div style={{ display:"flex", gap:8, marginBottom:12, flexWrap:"wrap" }}>
+            {[["paste-table","Paste table"],["paste-text","Paste text"],["csv","Upload CSV"]].map(([v,l])=>(
+              <button key={v} onClick={()=>{ setInputType(v); if(v==="csv") fileRef.current?.click(); }}
+                style={{ ...btnOutline, fontSize:11, padding:"5px 12px", background:inputType===v?C.accentLight:"transparent", borderColor:inputType===v?C.accent:C.border, color:inputType===v?C.accent:C.textMuted }}>
+                {l}
+              </button>
+            ))}
+            <div style={{ flex:1 }} />
+            <button onClick={loadExample} style={{ ...btnOutline, fontSize:11, padding:"5px 12px", color:C.textMuted }}>Load Flawed Example</button>
+          </div>
+
+          <input ref={fileRef} type="file" accept=".csv,.tsv,.txt" style={{ display:"none" }} onChange={handleFile} />
+
+          <textarea value={rawInput} onChange={e=>setRawInput(e.target.value)}
+            placeholder={inputType==="paste-table" ? "Paste from Excel or Google Sheets (tab-separated)…\n\nHeaders in first row, one indicator per row." : inputType==="paste-text" ? "Paste logframe text from a proposal or document…\n\nThe AI will find and extract indicators." : "CSV content loaded, or paste here…"}
+            style={{ ...inputStyle, height:200, resize:"vertical", fontFamily:F.mono, fontSize:12, lineHeight:1.5 }}
+          />
+
+          {parseError && <div style={{ marginTop:8, padding:10, background:C.failBg, border:`1px solid ${C.failBorder}`, borderRadius:6, fontSize:12, color:C.fail }}>{parseError}</div>}
+
+          <div style={{ marginTop:14 }}>
+            <button onClick={()=>parseLogframe(rawInput)} disabled={!rawInput.trim()||parsing}
+              style={{ ...btnPrimary, opacity:(!rawInput.trim()||parsing)?0.5:1, display:"inline-flex", alignItems:"center", gap:8 }}>
+              {parsing && <span style={{ display:"inline-block", width:14, height:14, border:"2px solid rgba(255,255,255,0.3)", borderTopColor:"#fff", borderRadius:"50%", animation:"iqr-spin 0.8s linear infinite" }} />}
+              {parsing ? "Extracting…" : "Extract Indicators"}
+            </button>
+          </div>
+
+          <div style={{ marginTop:24, padding:14, background:C.surfaceAlt, borderRadius:6, border:`1px solid ${C.border}` }}>
+            <div style={{ fontFamily:F.mono, fontSize:10, color:C.textDim, letterSpacing:"0.04em", marginBottom:6 }}>SUPPORTED FORMATS</div>
+            <div style={{ fontSize:12, color:C.textMid, lineHeight:1.6 }}>
+              Tab-separated (Excel/Sheets), comma-separated CSV, or unstructured proposal text. Headers don't need exact names — AI maps columns to fields and flags uncertainty.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ TABLE ═══ */}
+      {view === VIEWS.TABLE && (
+        <div style={{ maxWidth:960, margin:"0 auto", padding:"24px" }}>
+          <div style={{ display:"flex", alignItems:"center", marginBottom:14 }}>
+            <div>
+              <h2 style={{ fontFamily:F.display, fontSize:18, fontWeight:700 }}>Extracted Indicators</h2>
+              <p style={{ fontFamily:F.mono, fontSize:11, color:C.textMuted }}>{indicators.length} indicators · click to review</p>
+            </div>
+            <div style={{ flex:1 }} />
+            <button onClick={()=>setView(VIEWS.INGEST)} style={{ ...btnOutline, fontSize:11, padding:"5px 12px" }}>← New input</button>
+          </div>
+
+          <div style={cardStyle}>
+            <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12 }}>
+              <thead>
+                <tr>
+                  {["ID","Indicator","Level","Unit","Issues",""].map(h=>(
+                    <th key={h} style={{ textAlign:"left", padding:"8px", fontWeight:600, fontSize:10, textTransform:"uppercase", letterSpacing:"0.04em", color:C.textMuted, borderBottom:`1px solid ${C.border}` }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {indicators.map((ind,i) => {
+                  const iss = countIssues(i);
+                  return (
+                    <tr key={i} onClick={()=>selectIndicator(i)} style={{ cursor:"pointer", transition:"background 0.1s" }}>
+                      <td style={{ padding:"10px 8px", borderBottom:`1px solid ${C.borderSubtle}`, fontFamily:F.mono, fontSize:11, color:C.textMuted, whiteSpace:"nowrap" }}>{ind.id||"—"}</td>
+                      <td style={{ padding:"10px 8px", borderBottom:`1px solid ${C.borderSubtle}`, fontWeight:500, color:C.text }}>{ind.name}</td>
+                      <td style={{ padding:"10px 8px", borderBottom:`1px solid ${C.borderSubtle}`, whiteSpace:"nowrap" }}>{ind.resultsLevel && <span style={tagStyle}>{ind.resultsLevel}</span>}</td>
+                      <td style={{ padding:"10px 8px", borderBottom:`1px solid ${C.borderSubtle}`, fontFamily:F.mono, fontSize:11, color:C.textMuted }}>{ind.unit||"—"}</td>
+                      <td style={{ padding:"10px 8px", borderBottom:`1px solid ${C.borderSubtle}` }}>
+                        <div style={{ display:"flex", alignItems:"center", gap:4 }}>
+                          {iss.fail>0 && <><Dot status="fail" /><span style={{fontSize:11,color:C.fail}}>{iss.fail}</span></>}
+                          {iss.warn>0 && <><Dot status="warn" style={{marginLeft:iss.fail?4:0}} /><span style={{fontSize:11,color:C.warn}}>{iss.warn}</span></>}
+                          {iss.fail===0 && iss.warn===0 && <><Dot status="pass" /><span style={{fontSize:11,color:C.pass}}>clean</span></>}
+                        </div>
+                      </td>
+                      <td style={{ padding:"10px 8px", borderBottom:`1px solid ${C.borderSubtle}`, color:C.textDim, fontSize:13 }}>→</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ REVIEW ═══ */}
+      {view === VIEWS.REVIEW && selectedInd && (
+        <div style={{ display:"flex", maxWidth:1200, margin:"0 auto", padding:"16px 24px", gap:20, minHeight:"calc(100vh - 60px)" }}>
+          {/* Left: fields */}
+          <div style={{ width:"38%", minWidth:280, maxWidth:400 }}>
+            <div style={{ display:"flex", alignItems:"center", marginBottom:10, gap:6 }}>
+              <button onClick={()=>setView(VIEWS.TABLE)} style={{ ...btnOutline, fontSize:11, padding:"4px 10px" }}>← All</button>
+              <span style={{ fontFamily:F.mono, fontSize:10, color:C.textMuted }}>{selectedInd.id}</span>
+              <div style={{ flex:1 }} />
+              {selectedIdx > 0 && <button onClick={()=>setSelectedIdx(selectedIdx-1)} style={{...btnOutline,fontSize:11,padding:"4px 8px"}}>‹ Prev</button>}
+              {selectedIdx < indicators.length-1 && <button onClick={()=>setSelectedIdx(selectedIdx+1)} style={{...btnOutline,fontSize:11,padding:"4px 8px"}}>Next ›</button>}
+            </div>
+
+            <div style={{ ...cardStyle, maxHeight:"calc(100vh - 130px)", overflowY:"auto" }}>
+              <h3 style={{ fontFamily:F.display, fontSize:14, fontWeight:600, marginBottom:14, lineHeight:1.4, color:C.text }}>{selectedInd.name}</h3>
+
+              {FIELDS.map(([key,label]) => {
+                const val = selectedInd[key];
+                const isEditing = editField === `${selectedIdx}-${key}`;
+                const displayVal = val == null ? null : (typeof val === "object" ? JSON.stringify(val) : String(val));
+                const isEmpty = !displayVal || displayVal === "null";
+
+                return (
+                  <div key={key} style={{ padding:"5px 0", borderBottom:`1px solid ${C.borderSubtle}`, display:"flex", fontSize:12, gap:6, alignItems:"flex-start" }}>
+                    <span style={{ color:C.textMuted, minWidth:100, fontWeight:500, flexShrink:0, paddingTop:1 }}>{label}</span>
+                    {isEditing ? (
+                      <input autoFocus style={{ ...inputStyle, fontSize:11, padding:"3px 6px", flex:1 }}
+                        defaultValue={isEmpty ? "" : displayVal}
+                        onBlur={e=>{ updateField(selectedIdx, key, e.target.value); setEditField(null); }}
+                        onKeyDown={e=>{ if(e.key==="Enter") { updateField(selectedIdx, key, e.target.value); setEditField(null); } }}
+                      />
+                    ) : (
+                      <span style={{ color:isEmpty?C.textDim:C.text, flex:1, cursor:"pointer", lineHeight:1.4, fontStyle:isEmpty?"italic":"normal" }}
+                        onClick={()=>setEditField(`${selectedIdx}-${key}`)}>
+                        {isEmpty ? "click to add" : displayVal}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Right: review */}
+          <div style={{ flex:1, maxHeight:"calc(100vh - 60px)", overflowY:"auto" }}>
+            <div style={{ display:"flex", alignItems:"center", marginBottom:10, gap:8 }}>
+              <h3 style={{ fontFamily:F.display, fontSize:16, fontWeight:700 }}>Quality Review</h3>
+              <div style={{ flex:1 }} />
+              <button onClick={copySummary} style={{ ...btnOutline, fontSize:10, padding:"4px 10px" }}>Copy Summary</button>
+              <button onClick={exportJSON} style={{ ...btnOutline, fontSize:10, padding:"4px 10px" }}>Copy JSON</button>
+            </div>
+
+            <ScoreBar checks={selectedChecks} />
+
+            {CAT_ORDER.map(cat => grouped[cat] ? <CatGroup key={cat} cat={cat} checks={grouped[cat]} /> : null)}
+
+            <AIPanel key={selectedIdx} indicator={selectedInd} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('app')).render(
+  React.createElement(IndicatorQualityReviewer)
+);
+</script>
+</body>
+</html>
