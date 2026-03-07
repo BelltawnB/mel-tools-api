@@ -10,6 +10,3 @@
 # Daily summary email - 7am UTC every day
 [functions."daily-summary"]
   schedule = "0 7 * * *"
-
-[functions."proxy"]
-  timeout = 26
