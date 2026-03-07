@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analysis Plan Generator — Burgen Belltawn MEL Tools</title>
+<meta name="description" content="AI-powered analysis plan generator. Paste your XLSForm and logframe, get a structured analysis plan with indicator linkages, disaggregation logic, and data cleaning checks.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23FDF5F0' stroke='%23C67B5C' stroke-width='2.5'/%3E%3Crect x='30.5' y='10' width='3' height='44' rx='1.5' fill='%23C67B5C'/%3E%3Ctext x='10' y='43' font-family='Georgia,serif' font-size='26' font-weight='bold' fill='%233D2B22'%3EB%3C/text%3E%3Ctext x='36' y='43' font-family='Georgia,serif' font-size='26' font-weight='bold' fill='%233D2B22'%3EB%3C/text%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&family=IBM+Plex+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --terra: #C67B5C; --terra-deep: #B56A4A; --terra-light: #E8C4B4;
+  --terra-glow: #FDF5F0; --cream: #FFF9F4; --bark: #3D2B22;
+  --ink: #2A2220; --ink-soft: #6B5D57; --sage: #7A9E87; --sage-light: #EDF4EF;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Outfit',sans-serif; background:#FAFAF7; color:#2D2D2D; overflow-x:hidden; }
+.site-nav {
+  position:fixed; top:0; left:0; right:0; z-index:200;
+  padding:1rem 2rem; display:flex; justify-content:space-between; align-items:center;
+  background:rgba(255,249,244,0.92); backdrop-filter:blur(20px);
+  border-bottom:1px solid rgba(61,43,34,0.06);
+}
+.site-nav a { text-decoration:none; }
+.nav-logo { display:flex; align-items:center; gap:0.75rem; text-decoration:none; }
+.nav-logo-text { display:flex; flex-direction:column; line-height:1.15; }
+.nav-logo-name { font-family:'DM Serif Display',serif; font-size:1.15rem; color:var(--ink); letter-spacing:-0.01em; }
+.nav-logo-surname { font-family:'Outfit',sans-serif; font-size:0.65rem; font-weight:500; letter-spacing:0.18em; color:var(--terra); text-transform:uppercase; }
+.convergence-logo { width:38px; height:28px; flex-shrink:0; }
+.nav-links { display:flex; gap:2rem; list-style:none; align-items:center; }
+.nav-links a { color:var(--ink-soft); font-size:0.9rem; font-weight:400; letter-spacing:0.02em; transition:color 0.3s; position:relative; }
+.nav-links a::after { content:''; position:absolute; bottom:-4px; left:0; width:0; height:2px; background:var(--terra); border-radius:2px; transition:width 0.3s ease; }
+.nav-links a:hover { color:var(--ink); }
+.nav-links a:hover::after { width:100%; }
+.nav-links .current { color:var(--terra); font-weight:500; }
+#app { margin-top:64px; min-height:calc(100vh - 64px); }
+@keyframes spin { to { transform:rotate(360deg); } }
+::-webkit-scrollbar { width:5px; }
+::-webkit-scrollbar-thumb { background:#E8E8E0; border-radius:3px; }
+@media (max-width:768px) {
+  .site-nav { padding:0.6rem 1rem; }
+  .nav-links { gap:0.8rem; }
+  .nav-links a { font-size:0.75rem; }
+}
+</style>
+</head>
+<body>
+<nav class="site-nav">
+  <a href="https://belltawnb.github.io/" class="nav-logo">
+    <svg class="convergence-logo" viewBox="0 0 52 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Burgen Belltawn logo">
+      <path d="M6 5 C16 5, 22 17, 28 17" stroke="#E8C4B4" stroke-width="2" stroke-linecap="round" fill="none"/>
+      <path d="M6 31 C16 31, 22 19, 28 17" stroke="#E8C4B4" stroke-width="2" stroke-linecap="round" fill="none"/>
+      <path d="M6 17 L28 17" stroke="#E8C4B4" stroke-width="2" stroke-linecap="round" fill="none"/>
+      <circle cx="6" cy="5" r="3" fill="#E8C4B4"/>
+      <circle cx="6" cy="31" r="3" fill="#E8C4B4"/>
+      <circle cx="6" cy="17" r="3" fill="#C67B5C"/>
+      <circle cx="28" cy="17" r="3.5" fill="#C67B5C"/>
+      <path d="M31.5 17 L46 17" stroke="#B56A4A" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+      <polyline points="40,11 47,17 40,23" stroke="#B56A4A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>
+    <div class="nav-logo-text">
+      <div class="nav-logo-name">Burgen</div>
+      <div class="nav-logo-surname">BELLTAWN</div>
+    </div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="https://belltawnb.github.io/#about">About</a></li>
+    <li><a href="https://belltawnb.github.io/#specialties">Specialties</a></li>
+    <li><a href="https://belltawnb.github.io/#tools" class="current">AI Tools</a></li>
+    <li><a href="https://belltawnb.github.io/#experience">Experience</a></li>
+    <li><a href="https://belltawnb.github.io/#contact">Contact</a></li>
+  </ul>
+</nav>
+<div id="app"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script type="text/babel" data-type="module">
+const { useState, useRef } = React;
+
+// ── Proxy ─────────────────────────────────────────────────────────────────────
+const PROXY_URL = "https://mel-tools-api.netlify.app/api/proxy";
+const TOOL_NAME = "analysis-plan-generator";
+
+async function callProxy(body) {
+  let res;
+  try {
+    res = await fetch(PROXY_URL, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ ...body, _tool: TOOL_NAME })
+    });
+  } catch(e) {
+    throw new Error("Could not reach the API. Check your internet connection and try again. (Network error: " + e.message + ")");
+  }
+  if (res.status === 429) {
+    const j = await res.json();
+    throw new RateLimitError(j.message || "Daily limit reached. Try again in 24 hours, or download the code from GitHub to use your own API key.");
+  }
+  if (!res.ok) {
+    const j = await res.json().catch(()=>({}));
+    throw new Error(j.error || `API error ${res.status}`);
+  }
+  return res.json();
+}
+class RateLimitError extends Error {
+  constructor(msg) { super(msg); this.isRateLimit = true; }
+}
+
+// ── Design system ─────────────────────────────────────────────────────────────
+const C = {
+  bg:"#FAFAF7", surface:"#FFFFFF", surfaceAlt:"#F5F5F0",
+  border:"#E8E8E0", borderSubtle:"#F0F0EA",
+  text:"#2D2D2D", textMid:"#555555", textMuted:"#8A9A8A", textDim:"#B0B8B0",
+  forest:"#2D5016", forestLight:"#3D6B20", sage:"#5A7A3A", sagePale:"#E8F0DC",
+  sageMid:"#8FAF6A", amber:"#C17D2A", amberPale:"#FDF3E3", amberBorder:"#E8C97A",
+  rust:"#8B3A2A", rustPale:"#FAEAE7", rustBorder:"#D4907A",
+  terra:"#C67B5C", terraGlow:"#FDF5F0",
+  mono:"'IBM Plex Mono',monospace", sans:"'Outfit',sans-serif",
+};
+const inputStyle = { width:"100%", padding:"9px 12px", background:C.surface, border:`1px solid ${C.border}`, borderRadius:6, color:C.text, fontFamily:C.sans, fontSize:13, outline:"none", transition:"border-color 0.2s" };
+const btnPrimary = { padding:"9px 20px", background:C.forest, color:"#fff", border:"none", borderRadius:6, fontFamily:C.sans, fontWeight:600, fontSize:13, cursor:"pointer", display:"inline-flex", alignItems:"center", gap:8 };
+const btnOutline = { padding:"7px 14px", background:"transparent", color:C.forest, border:`1px solid ${C.border}`, borderRadius:6, fontFamily:C.sans, fontWeight:500, fontSize:12, cursor:"pointer" };
+
+// ── Example data (Almaran SRI Pilot — fictional) ──────────────────────────────
+const EXAMPLE_XLSFORM = `type\tname\tlabel::English
+select_one hh_status\thh_status\tS2.1 What is the current status of this household?
+select_one safe_settle\tsafe_settle\tS3.1 How safe do you feel to settle or stay in this area?
+select_multiple unsafe_factors\tunsafe_factors\tS3.2 What factors make you feel unsafe? (Select all that apply)
+select_one housing_type\thousing_type\tS4.1 Which best describes your current housing situation?
+select_one income_sufficient\tincome_sufficient\tS5.1 Is your household's current income sufficient to meet basic needs?
+integer\tincome_monthly\tincome_monthly\tS5.2 Approximate monthly household income (AMD equivalent)
+select_one food_cereals\tfcs_cereals\tS6.1 In the past 7 days, how many days did your household eat: Cereals/bread/rice?
+select_one food_pulses\tfcs_pulses\tS6.2 Pulses/legumes/nuts?
+select_one food_veg\tfcs_veg\tS6.3 Vegetables?
+select_one food_meat\tfcs_meat\tS6.4 Meat/fish/eggs?
+select_one food_dairy\tfcs_dairy\tS6.5 Dairy products?
+select_one food_sugar\tfcs_sugar\tS6.6 Sugar/honey?
+select_one food_oil\tfcs_oil\tS6.7 Oil/fat?
+select_one rcsi_less_pref\trcsi_less_pref\tS7.1 Relied on less preferred/cheaper foods
+select_one rcsi_borrow\trcsi_borrow\tS7.2 Borrowed food or relied on help from others
+select_one rcsi_reduce_portions\trcsi_portions\tS7.3 Reduced portion sizes
+select_one rcsi_restrict_adults\trcsi_adults\tS7.4 Restricted adult consumption so children could eat
+select_one rcsi_reduce_meals\trcsi_meals\tS7.5 Reduced number of meals per day
+select_one missing_doc\tmissing_doc\tS8.1 Is your household missing any core identity documents?
+select_one doc_blocks_access\tdoc_blocks_access\tS8.2 Does missing a document prevent access to services or assistance?
+select_one idp_host_relations\tidp_host_relations\tS9.1 How well do displaced and host community members get along in this area?
+select_one community_trust\tcommunity_trust\tS9.2 How much do displaced and host community members trust each other?
+select_one feel_accepted\tfeel_accepted\tS9.3 How well does your household feel accepted in this community?
+select_one authority_engagement\tauthority_engagement\tS9.4 How involved are local authorities in improving community relations?`;
+
+const EXAMPLE_LOGFRAME = `Level\tIndicator\tDefinition\tBaseline\tTarget\tDisaggregation
+Impact\t% HHs feeling very safe to settle in project areas\t% selecting 'Very safe' only in S3.1. Threshold: top option only.\t52%\t70%\tSex of HoH; Displacement status; Governorate
+Impact\t% HHs with sufficient income\t% selecting 'Sufficient' or 'More than sufficient' in S5.1. Top-2 combined.\t18%\t30%\tSex of HoH; Displacement status
+Outcome\tMean rCSI score\trCSI = less preferred×1 + borrow×2 + portions×1 + adults×3 + meals×1. Lower = better. Baseline 19, target 15.\t19\t15\tSex of HoH; Displacement status; Governorate
+Outcome\t% HHs with Acceptable food consumption\tFCS Acceptable ≥28 (standard thresholds). Formula: Cereals×2 + Pulses×3 + Veg×1 + Meat×4 + Dairy×4 + Sugar×0.5 + Oil×0.5.\t41%\t55%\tSex of HoH; Displacement status
+Outcome\t% reporting positive social cohesion\t3-item battery S9.1–S9.3. % selecting top-2 per question, averaged across items.\t38%\t52%\tSex of HoH; Displacement status; Governorate`;
+
+// ── Prompt builders ───────────────────────────────────────────────────────────
+function buildParsePrompt(xlsform, logframe) {
+  return `You are a senior MEL data specialist. Parse the following XLSForm survey sheet and logframe to extract structured data for analysis planning.
+
+XLSFORM SURVEY SHEET (tab-separated):
+${xlsform}
+
+LOGFRAME (tab-separated):
+${logframe || "No logframe provided."}
+
+Extract and return a JSON object with exactly these two keys:
+
+1. "questions": array of up to 50 question objects, each with:
+   - name: variable name (from 'name' column)
+   - label: English label (from 'label::English' or 'label' column)
+   - type: question type (select_one, select_multiple, integer, text, calculate, etc.)
+   - section: infer section code from label prefix (e.g. "S5", "S6", "S11") or group context
+   - section_label: full section name (e.g. "Household Status", "Shelter")
+   Skip: begin_group, end_group, begin_repeat, end_repeat, note, calculate rows
+
+2. "indicators": array of logframe indicator objects, each with:
+   - level: results level (Impact/Outcome/Output/Activity)
+   - name: indicator name
+   - definition: full definition including calculation method
+   - baseline: baseline value
+   - target: target value
+   - disaggregation: disaggregation categories
+   - source_questions: array of variable names from the XLSForm that feed this indicator (match carefully)
+   - threshold: specific threshold if applicable (e.g. "'Very safe' only", "top-2 options combined")
+   - notes: any critical methodological notes (e.g. Yemen-specific FCS thresholds, normalization method)
+
+CRITICAL JSON RULES: Return ONLY a valid JSON object. No markdown, no backticks, no explanation. All strings on one line (no literal newlines). Use null for missing values.`;
+}
+
+function buildAnalysisPlanPrompt(parsedData) {
+  return `You are a senior MEL specialist generating a structured analysis plan for a humanitarian final assessment.
+
+PARSED FORM DATA:
+${JSON.stringify(parsedData, null, 2)}
+
+Generate a comprehensive analysis plan. Return a JSON object with exactly these keys:
+
+"plan": array of analysis rows. Each row covers one research topic and has:
+- section: section code and name (e.g. "S11. Shelter")
+- research_topic: short topic label (e.g. "Settlement safety — Impact Indicator 1")
+- relevant_questions: variable name(s) or label references
+- research_question: the specific analytical question this row answers, including calculation method for indicator rows (numerator/denominator/threshold)
+- indicator_link: either "Impact Ind. X: [name] — baseline X%, target Y%" OR "Outcome X.X: [name]" OR "Non-indicator: [purpose]"
+- visualization: specific chart type and what axes/breakdowns to show
+- disaggregation: explicit disaggregation variables
+- use_of_information: who uses this, what decision/action it informs, by when
+- flags: specific action threshold if applicable (e.g. "Flag if >20% report X — escalate to Y"), OR analytical note (prefix with "Analytical note:"), OR protection flag (prefix with "Protection flag:"), OR null
+- flag_type: "protection", "action", "note", or null
+
+"cleaning": array of data quality checks specific to this form (10-12 items). Each is a string describing a specific check with variable names.
+
+"crosstabs": array of recommended cross-tabulations, each with:
+- variables: variable names and labels
+- purpose: why this cross-tab matters for indicator interpretation or protection monitoring
+
+"gaps": array of coverage gaps between logframe and form, each with:
+- severity: "critical", "warning", or "info"
+- indicator: indicator name or issue title
+- issue: one-line summary of the gap
+- detail: explanation
+- action: concrete action required
+
+RULES:
+- Indicator rows must include exact calculation method (formula, threshold, denominator)
+- Protection flags must name the referring agency/cluster
+- Use actual variable names from the parsed data
+- For FCS: always note Yemen-specific thresholds if present in logframe
+- For social cohesion: always note normalized-average method if present
+- Return ONLY valid JSON. No markdown, no backticks, no preamble.`;
+}
+
+// ── TSV parser ────────────────────────────────────────────────────────────────
+function parseTSV(text) {
+  const lines = text.trim().split("\n");
+  return lines.map(l => l.split("\t").map(c => c.trim()));
+}
+
+function countSurveyRows(text) {
+  const rows = parseTSV(text);
+  const skip = ["begin_group","end_group","begin_repeat","end_repeat","note","calculate",""];
+  return rows.filter((r,i) => i > 0 && r[0] && !skip.some(s => r[0].toLowerCase().startsWith(s))).length;
+}
+
+// ── Main App ──────────────────────────────────────────────────────────────────
+const VIEWS = { INGEST:"ingest", PLAN:"plan" };
+const TABS = ["plan","cleaning","crosstabs","gaps"];
+const TAB_LABELS = { plan:"Analysis Plan", cleaning:"Data Cleaning", crosstabs:"Cross-Tabs", gaps:"Coverage Gaps" };
+
+function App() {
+  const [view, setView] = useState(VIEWS.INGEST);
+  const [xlsInput, setXlsInput] = useState("");
+  const [lfInput, setLfInput] = useState("");
+  const [activeTab, setActiveTab] = useState("plan");
+  const [parsed, setParsed] = useState(null);
+  const [planData, setPlanData] = useState(null);
+  const [step, setStep] = useState(null); // null | "parsing" | "generating" | "done"
+  const [error, setError] = useState(null);
+  const [isRateLimit, setIsRateLimit] = useState(false);
+  const [copyMsg, setCopyMsg] = useState("");
+  const [customCrosstabs, setCustomCrosstabs] = useState([]);
+  const [varA, setVarA] = useState(""); const [varB, setVarB] = useState("");
+  const [ctPurpose, setCtPurpose] = useState(""); const [ctError, setCtError] = useState("");
+
+  const rowCount = xlsInput ? countSurveyRows(xlsInput) : 0;
+  const overLimit = rowCount > 50;
+
+  const loadExample = () => { setXlsInput(EXAMPLE_XLSFORM); setLfInput(EXAMPLE_LOGFRAME); };
+
+  const flash = (msg) => { setCopyMsg(msg); setTimeout(()=>setCopyMsg(""),2000); };
+
+  const generate = async () => {
+    setError(null); setIsRateLimit(false);
+    try {
+      // Step 1: parse
+      setStep("parsing");
+      const parseRes = await callProxy({
+        model:"claude-sonnet-4-5-20250929", max_tokens:4096,
+        messages:[{ role:"user", content:buildParsePrompt(xlsInput, lfInput) }]
+      });
+      const parseRaw = parseRes.content?.map(b=>b.text||"").join("") || "{}";
+      let parseClean = parseRaw.replace(/```json|```/g,"").trim();
+      const fb = parseClean.indexOf("{"); const lb = parseClean.lastIndexOf("}");
+      if (fb !== -1 && lb > fb) parseClean = parseClean.substring(fb, lb+1);
+      const parsedObj = JSON.parse(parseClean);
+      setParsed(parsedObj);
+
+      // Step 2: generate plan
+      setStep("generating");
+      const planRes = await callProxy({
+        model:"claude-sonnet-4-5-20250929", max_tokens:8192,
+        messages:[{ role:"user", content:buildAnalysisPlanPrompt(parsedObj) }]
+      });
+      const planRaw = planRes.content?.map(b=>b.text||"").join("") || "{}";
+      let planClean = planRaw.replace(/```json|```/g,"").trim();
+      const fb2 = planClean.indexOf("{"); const lb2 = planClean.lastIndexOf("}");
+      if (fb2 !== -1 && lb2 > fb2) planClean = planClean.substring(fb2, lb2+1);
+      const planObj = JSON.parse(planClean);
+      setPlanData(planObj);
+      setStep("done");
+      setView(VIEWS.PLAN);
+    } catch(e) {
+      setStep(null);
+      setIsRateLimit(e.isRateLimit||false);
+      setError(e.message);
+    }
+  };
+
+  const copyPlanTSV = () => {
+    if (!planData?.plan) return;
+    const hdr = ["Section","Research Topic","Question(s)","Research Question","Indicator","Visualization","Disaggregation","Use of Information","Flags"].join("\t");
+    const rows = planData.plan.map(r => [r.section,r.research_topic,r.relevant_questions,r.research_question,r.indicator_link,r.visualization,r.disaggregation,r.use_of_information,r.flags||""].join("\t"));
+    navigator.clipboard.writeText([hdr,...rows].join("\n")); flash("Copied!");
+  };
+
+  const addCustomCT = () => {
+    if (!varA || !varB) { setCtError("Enter both variables."); return; }
+    setCustomCrosstabs(p=>[...p,{ variables:`${varA} × ${varB}`, purpose:ctPurpose.trim()||"Custom cross-tabulation", custom:true }]);
+    setVarA(""); setVarB(""); setCtPurpose(""); setCtError("");
+  };
+
+  const allCrosstabs = [...(planData?.crosstabs||[]), ...customCrosstabs];
+
+  // ── flag badge ──
+  const FlagBadge = ({text,type}) => {
+    if (!text) return null;
+    const s = {
+      protection:{ bg:C.rustPale, border:C.rustBorder, color:C.rust, icon:"⚑" },
+      action:    { bg:C.amberPale, border:C.amberBorder, color:C.amber, icon:"▲" },
+      note:      { bg:C.sagePale, border:"#B8D090", color:C.sage, icon:"ℹ" },
+    }[type]||{ bg:C.sagePale, border:"#B8D090", color:C.sage, icon:"ℹ" };
+    return <span style={{ display:"inline-flex", gap:4, alignItems:"flex-start", background:s.bg, border:`1px solid ${s.border}`, color:s.color, borderRadius:4, padding:"3px 8px", fontSize:10, fontFamily:C.mono, lineHeight:1.5 }}><span style={{flexShrink:0}}>{s.icon}</span>{text}</span>;
+  };
+
+  const IndBadge = ({link}) => {
+    if (!link) return null;
+    const isNon = link.startsWith("Non-indicator");
+    const short = isNon ? link : link.split(":")[0];
+    const rest = (!isNon && link.includes(":")) ? link.split(":").slice(1).join(":").trim() : null;
+    return <div>
+      <span style={{ display:"inline-block", background:isNon?C.amberPale:C.sagePale, border:`1px solid ${isNon?C.amberBorder:"#B8D090"}`, color:isNon?C.amber:C.forest, borderRadius:4, padding:"2px 8px", fontSize:10, fontFamily:C.mono }}>{short}</span>
+      {rest && <div style={{ fontSize:10, color:C.textMuted, marginTop:3, lineHeight:1.4 }}>{rest.length>70?rest.substring(0,70)+"…":rest}</div>}
+    </div>;
+  };
+
+  // Grouped plan rows
+  const grouped = (planData?.plan||[]).reduce((acc,row)=>{
+    const k = row.section||"Other";
+    if (!acc[k]) acc[k]=[];
+    acc[k].push(row); return acc;
+  },{});
+
+  const protRows = (planData?.plan||[]).filter(r=>r.flag_type==="protection");
+  const critGaps = (planData?.gaps||[]).filter(g=>g.severity==="critical").length;
+
+  const tabCount = { plan:null, cleaning:(planData?.cleaning||[]).length, crosstabs:allCrosstabs.length, gaps:critGaps||null };
+  const tabAlert = { protection:true, gaps:true };
+
+  // ── RENDER ──
+  return (
+    <div style={{ minHeight:"100vh", background:C.bg, fontFamily:C.sans, color:C.text }}>
+      <style>{`
+        @keyframes spin { to { transform:rotate(360deg); } }
+        input:focus, textarea:focus { border-color:${C.forest} !important; box-shadow:0 0 0 2px ${C.sagePale}; }
+        textarea { resize:vertical; }
+        tr:hover td { background:${C.surfaceAlt}; }
+        ::-webkit-scrollbar { width:5px; height:5px; }
+        ::-webkit-scrollbar-thumb { background:${C.border}; border-radius:3px; }
+        .tab-btn { background:none; border:none; border-bottom:2px solid transparent; cursor:pointer; padding:9px 16px; font-family:${C.mono}; font-size:9px; letter-spacing:1.8px; text-transform:uppercase; transition:all 0.15s; white-space:nowrap; display:inline-flex; align-items:center; gap:6px; }
+        .tab-on { color:${C.forest}; border-bottom-color:${C.forest}; }
+        .tab-off { color:${C.textMuted}; }
+        .tab-off:hover { color:${C.textMid}; }
+        .tab-alert.tab-on { color:${C.rust}; border-bottom-color:${C.rust}; }
+        .btn-outline { padding:7px 14px; background:transparent; color:${C.forest}; border:1px solid ${C.border}; border-radius:6px; font-family:${C.sans}; font-weight:500; font-size:12px; cursor:pointer; }
+        .btn-outline:hover { background:${C.sagePale}; border-color:#B8D090; }
+        .sec-hdr td { background:${C.sagePale} !important; border-top:1px solid #C8DCA8; border-bottom:1px solid #C8DCA8; }
+        .check-row { display:flex; gap:12px; align-items:flex-start; background:white; border:1px solid ${C.border}; border-radius:5px; padding:10px 14px; margin-bottom:6px; }
+        .check-row:hover { border-color:#B8D090; }
+        @media print {
+          .no-print { display:none !important; }
+          body { background:white; }
+          table { font-size:9px; border-collapse:collapse; width:100%; }
+          th { background:#2D5016 !important; color:white !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; padding:5px 7px; text-align:left; }
+          td { padding:4px 7px; border-bottom:1px solid #ddd; vertical-align:top; }
+          .sec-hdr td { background:#E8F0DC !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; font-weight:600; color:#2D5016 !important; }
+          @page { size:A3 landscape; margin:1.5cm; }
+        }
+      `}</style>
+
+      {/* TOOL HEADER */}
+      <div className="no-print" style={{ padding:"12px 24px", borderBottom:`1px solid ${C.border}`, background:C.surface, display:"flex", alignItems:"center", gap:12 }}>
+        <div>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontWeight:700, fontSize:15, color:C.text }}>Analysis Plan Generator</div>
+          <div style={{ fontFamily:C.mono, fontSize:10, color:C.textDim, letterSpacing:"0.06em" }}>MEL TOOLS</div>
+        </div>
+        <div style={{ flex:1 }} />
+        {copyMsg && <span style={{ fontFamily:C.mono, fontSize:11, color:C.forest, fontWeight:500 }}>{copyMsg}</span>}
+        {view===VIEWS.PLAN && (
+          <div style={{ display:"flex", gap:6 }}>
+            <button className="btn-outline" onClick={()=>{ setView(VIEWS.INGEST); setStep(null); setPlanData(null); setParsed(null); }}>← New form</button>
+            <button className="btn-outline" onClick={copyPlanTSV}>Copy TSV</button>
+            <button onClick={()=>window.print()} style={{ ...btnPrimary, fontSize:12, padding:"7px 16px", background:C.forest }}>⎙ Print / PDF</button>
+          </div>
+        )}
+      </div>
+
+      {/* NOTICE BANNER */}
+      <div className="no-print" style={{ background:"#FDF5F0", borderBottom:"1px solid #E8C4B4", padding:"8px 24px", fontSize:11, color:"#6B5549" }}>
+        🔒 This tool runs on a shared API — a daily usage limit applies. Want unlimited access?{" "}
+        <a href="https://github.com/BelltawnB/mel-tools-api" target="_blank" style={{ color:"#C67B5C", fontWeight:500, textDecoration:"underline" }}>Download the code on GitHub</a>{" "}
+        and use your own Anthropic API key.
+      </div>
+
+      {/* ═══ INGEST ═══ */}
+      {view === VIEWS.INGEST && (
+        <div style={{ maxWidth:760, margin:"0 auto", padding:"32px 24px" }}>
+          <h2 style={{ fontFamily:"'DM Sans',sans-serif", fontSize:22, fontWeight:700, marginBottom:6 }}>Generate an analysis plan</h2>
+          <p style={{ fontSize:13, color:C.textMuted, marginBottom:28, lineHeight:1.6 }}>
+            Paste your XLSForm survey sheet and logframe. The tool extracts questions, maps them to indicators, and generates a structured analysis plan with disaggregation logic, visualization guidance, and data quality checks.
+          </p>
+
+          {/* Step 1 */}
+          <div style={{ marginBottom:24 }}>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                <span style={{ width:24, height:24, borderRadius:"50%", background:C.forest, color:"white", display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:700, flexShrink:0 }}>1</span>
+                <span style={{ fontWeight:600, fontSize:14 }}>XLSForm survey sheet</span>
+                <span style={{ fontFamily:C.mono, fontSize:10, color:C.textMuted, background:C.surfaceAlt, border:`1px solid ${C.border}`, borderRadius:4, padding:"1px 8px" }}>required</span>
+              </div>
+              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                {rowCount > 0 && (
+                  <span style={{ fontFamily:C.mono, fontSize:11, color:overLimit?C.rust:C.forest }}>
+                    {rowCount} question{rowCount!==1?"s":""} {overLimit?"— over 50 limit":"detected"}
+                  </span>
+                )}
+                <button className="btn-outline" style={{ fontSize:11, padding:"4px 10px" }} onClick={loadExample}>Load Flawed Example</button>
+              </div>
+            </div>
+            <textarea value={xlsInput} onChange={e=>setXlsInput(e.target.value)}
+              placeholder={"Paste from Excel — copy the 'survey' sheet tab and paste here.\n\nExpected columns: type | name | label::English (or label)\nMax 50 question rows (skip groups, notes, calculations)."}
+              style={{ ...inputStyle, height:180, fontFamily:C.mono, fontSize:11, lineHeight:1.5, borderColor:overLimit?C.rust:C.border }}
+            />
+            {overLimit && <div style={{ marginTop:4, fontSize:11, color:C.rust, fontFamily:C.mono }}>⚠ {rowCount} questions detected — trim to 50 before generating. Remove groups, notes, and calculation rows.</div>}
+            <div style={{ marginTop:6, fontSize:11, color:C.textMuted, lineHeight:1.5 }}>
+              In Excel: right-click the "survey" sheet tab → Move or Copy → paste into a new sheet, select all (Ctrl+A), copy (Ctrl+C), paste here. The tool uses the <em>type</em>, <em>name</em>, and <em>label::English</em> columns.
+            </div>
+          </div>
+
+          {/* Step 2 */}
+          <div style={{ marginBottom:28 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8 }}>
+              <span style={{ width:24, height:24, borderRadius:"50%", background:xlsInput.trim()?C.forest:C.border, color:"white", display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:700, flexShrink:0, transition:"background 0.2s" }}>2</span>
+              <span style={{ fontWeight:600, fontSize:14 }}>Logframe or indicator list</span>
+              <span style={{ fontFamily:C.mono, fontSize:10, color:C.textMuted, background:C.surfaceAlt, border:`1px solid ${C.border}`, borderRadius:4, padding:"1px 8px" }}>optional — improves output</span>
+            </div>
+            <textarea value={lfInput} onChange={e=>setLfInput(e.target.value)}
+              placeholder={"Paste your logframe, results framework, or indicator list.\n\nTab-separated from Excel or plain text both work. Include: indicator names, definitions, baselines, targets, disaggregations. The more complete, the better the indicator linkages and threshold notes."}
+              style={{ ...inputStyle, height:160, fontFamily:C.mono, fontSize:11, lineHeight:1.5 }}
+            />
+          </div>
+
+          {/* Error */}
+          {error && (
+            <div style={{ marginBottom:16, padding:12, background:isRateLimit?"#FDF5F0":C.rustPale, border:`1px solid ${isRateLimit?"#E8C4B4":C.rustBorder}`, borderRadius:8, fontSize:12 }}>
+              {isRateLimit
+                ? <div><div style={{ fontWeight:600, color:"#B56A4A", marginBottom:4 }}>⏱ Daily limit reached</div><div style={{ color:"#6B5549", lineHeight:1.6 }}>{error}</div><a href="https://github.com/BelltawnB/mel-tools-api" target="_blank" style={{ display:"inline-block", marginTop:8, color:"#C67B5C", fontWeight:500, textDecoration:"underline" }}>Download the code on GitHub →</a></div>
+                : <span style={{ color:C.rust }}>{error}</span>
+              }
+            </div>
+          )}
+
+          {/* Generate button */}
+          <div style={{ display:"flex", alignItems:"center", gap:16 }}>
+            <button onClick={generate} disabled={!xlsInput.trim()||overLimit||!!step}
+              style={{ ...btnPrimary, opacity:(!xlsInput.trim()||overLimit||!!step)?0.5:1 }}>
+              {step==="parsing" && <span style={{ width:14, height:14, border:"2px solid rgba(255,255,255,0.3)", borderTopColor:"#fff", borderRadius:"50%", animation:"spin 0.8s linear infinite", display:"inline-block" }} />}
+              {step==="generating" && <span style={{ width:14, height:14, border:"2px solid rgba(255,255,255,0.3)", borderTopColor:"#fff", borderRadius:"50%", animation:"spin 0.8s linear infinite", display:"inline-block" }} />}
+              {step==="parsing" ? "Parsing form…" : step==="generating" ? "Generating plan…" : "Generate Analysis Plan"}
+            </button>
+            {step && (
+              <div style={{ fontSize:12, color:C.textMuted }}>
+                {step==="parsing" && "Step 1 of 2 — extracting questions and indicator mappings…"}
+                {step==="generating" && "Step 2 of 2 — building analysis plan rows…"}
+              </div>
+            )}
+          </div>
+
+          {/* Format guide */}
+          <div style={{ marginTop:28, padding:16, background:C.surfaceAlt, borderRadius:8, border:`1px solid ${C.border}` }}>
+            <div style={{ fontFamily:C.mono, fontSize:10, color:C.textDim, letterSpacing:"0.04em", marginBottom:8 }}>WHAT THIS TOOL GENERATES</div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+              {[
+                ["Analysis Plan","Research questions, indicator linkages, visualization specs, and use-of-information for each form section"],
+                ["Data Cleaning","Pre-analysis quality checks specific to your form structure"],
+                ["Cross-Tabs","Recommended variable pairs for indicator interpretation and protection monitoring"],
+                ["Coverage Gaps","Mismatches between logframe indicators and form question coverage"],
+              ].map(([t,d])=>(
+                <div key={t} style={{ padding:"10px 12px", background:C.surface, borderRadius:6, border:`1px solid ${C.border}` }}>
+                  <div style={{ fontWeight:600, fontSize:12, color:C.forest, marginBottom:3 }}>{t}</div>
+                  <div style={{ fontSize:11, color:C.textMuted, lineHeight:1.5 }}>{d}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ PLAN VIEW ═══ */}
+      {view === VIEWS.PLAN && planData && (
+        <>
+          {/* Summary bar */}
+          <div className="no-print" style={{ borderBottom:`1px solid ${C.border}`, padding:"8px 24px", display:"flex", gap:28, background:C.surface, flexWrap:"wrap" }}>
+            {[
+              ["Analysis items", (planData.plan||[]).length, C.forest],
+              ["Sections", Object.keys(grouped).length, C.textMid],
+              ["Indicator-linked", (planData.plan||[]).filter(r=>!r.indicator_link?.startsWith("Non-indicator")).length, C.sage],
+              ["Non-indicator", (planData.plan||[]).filter(r=>r.indicator_link?.startsWith("Non-indicator")).length, C.textMid],
+            ].map(([l,v,col])=>(
+              <div key={l} style={{ display:"flex", gap:7, alignItems:"baseline" }}>
+                <span style={{ fontSize:18, fontWeight:700, color:col, fontFamily:C.mono }}>{v}</span>
+                <span style={{ fontSize:11, color:C.textMuted }}>{l}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Tabs */}
+          <div className="no-print" style={{ borderBottom:`1px solid ${C.border}`, padding:"0 24px", display:"flex", background:C.surface }}>
+            {TABS.map(k=>{
+              const isAlert = k==="gaps";
+              const count = k==="gaps" ? critGaps : k==="cleaning" ? (planData.cleaning||[]).length : k==="crosstabs" ? allCrosstabs.length : null;
+              const isOn = activeTab===k;
+              return (
+                <button key={k} className={`tab-btn ${isOn?"tab-on":"tab-off"} ${isAlert?"tab-alert":""}`} onClick={()=>setActiveTab(k)}>
+                  {TAB_LABELS[k]}
+                  {count != null && count > 0 && (
+                    <span style={{ background:isAlert?(isOn?C.rust:C.rustPale):(isOn?C.forest:C.border), color:isAlert?(isOn?"white":C.rust):(isOn?"white":C.textMuted), borderRadius:10, padding:"1px 6px", fontSize:9, fontFamily:C.mono }}>
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+            {protRows.length > 0 && (
+              <button className={`tab-btn ${activeTab==="protection"?"tab-on tab-alert":"tab-off tab-alert"}`} onClick={()=>setActiveTab("protection")}>
+                Protection Flags
+                <span style={{ background:activeTab==="protection"?C.rust:C.rustPale, color:activeTab==="protection"?"white":C.rust, borderRadius:10, padding:"1px 6px", fontSize:9, fontFamily:C.mono }}>{protRows.length}</span>
+              </button>
+            )}
+          </div>
+
+          <div style={{ padding:"20px 24px", overflowX:"auto" }}>
+
+            {/* ANALYSIS PLAN */}
+            {activeTab==="plan" && <>
+              <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12, background:C.surface }}>
+                <thead>
+                  <tr>{["Research Topic","Q#s","Research Question","Indicator Link","Visualization","Disaggregation","Use of Information","Flags"].map(h=>(
+                    <th key={h} style={{ padding:"9px 10px", textAlign:"left", fontFamily:C.mono, fontSize:8, letterSpacing:1.5, textTransform:"uppercase", color:"white", background:C.forest, whiteSpace:"nowrap" }}>{h}</th>
+                  ))}</tr>
+                </thead>
+                <tbody>
+                  {Object.entries(grouped).map(([section,rows])=>(
+                    <React.Fragment key={section}>
+                      <tr className="sec-hdr"><td colSpan={8} style={{ padding:"7px 10px" }}><span style={{ fontFamily:C.mono, fontSize:8, letterSpacing:2, textTransform:"uppercase", color:C.forest, fontWeight:600 }}>{section}</span></td></tr>
+                      {rows.map((row,ri)=>(
+                        <tr key={ri} style={{ borderBottom:`1px solid ${C.border}`, background:ri%2===0?C.surface:C.surfaceAlt }}>
+                          <td style={{ padding:"8px 10px", color:C.textMid, minWidth:120, verticalAlign:"top", fontWeight:500 }}>{row.research_topic}</td>
+                          <td style={{ padding:"8px 10px", color:C.forest, fontFamily:C.mono, fontSize:10, whiteSpace:"nowrap", verticalAlign:"top" }}>{row.relevant_questions}</td>
+                          <td style={{ padding:"8px 10px", color:C.text, minWidth:200, verticalAlign:"top", lineHeight:1.55 }}>{row.research_question}</td>
+                          <td style={{ padding:"8px 10px", verticalAlign:"top", minWidth:130 }}><IndBadge link={row.indicator_link} /></td>
+                          <td style={{ padding:"8px 10px", color:C.textMuted, minWidth:140, verticalAlign:"top", fontSize:11, lineHeight:1.5 }}>{row.visualization}</td>
+                          <td style={{ padding:"8px 10px", color:C.textMuted, minWidth:130, verticalAlign:"top", fontSize:11, lineHeight:1.5 }}>{row.disaggregation}</td>
+                          <td style={{ padding:"8px 10px", color:C.textMid, minWidth:180, verticalAlign:"top", lineHeight:1.5 }}>{row.use_of_information}</td>
+                          <td style={{ padding:"8px 10px", verticalAlign:"top", minWidth:150 }}><FlagBadge text={row.flags} type={row.flag_type} /></td>
+                        </tr>
+                      ))}
+                    </React.Fragment>
+                  ))}
+                </tbody>
+              </table>
+              <div className="no-print" style={{ borderTop:`1px solid ${C.border}`, marginTop:28, paddingTop:14, display:"flex", justifyContent:"flex-end" }}>
+                <button onClick={()=>window.print()} style={{ ...btnPrimary, fontSize:12 }}>⎙ Print / Save as PDF</button>
+              </div>
+            </>}
+
+            {/* DATA CLEANING */}
+            {activeTab==="cleaning" && <>
+              <div style={{ maxWidth:760 }}>
+                <div style={{ background:C.sagePale, border:`1px solid #B8D090`, borderRadius:6, padding:"10px 14px", marginBottom:16, fontSize:12, color:C.textMid, lineHeight:1.6 }}>
+                  Run these checks on the raw data export <strong>before</strong> any indicator calculation. Specific to this form's structure and the quality risks identified from your inputs.
+                </div>
+                {(planData.cleaning||[]).map((item,i)=>(
+                  <div key={i} className="check-row">
+                    <div style={{ width:16, height:16, border:`1.5px solid ${C.border}`, borderRadius:3, flexShrink:0, marginTop:3 }} />
+                    <span style={{ fontSize:13, color:C.textMid, lineHeight:1.6 }}>{item}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="no-print" style={{ borderTop:`1px solid ${C.border}`, marginTop:28, paddingTop:14, display:"flex", justifyContent:"flex-end" }}>
+                <button onClick={()=>window.print()} style={{ ...btnPrimary, fontSize:12 }}>⎙ Print / Save as PDF</button>
+              </div>
+            </>}
+
+            {/* CROSS-TABS */}
+            {activeTab==="crosstabs" && <>
+              <div style={{ maxWidth:940 }}>
+                {/* Builder */}
+                <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:8, padding:"14px 18px", marginBottom:20 }}>
+                  <div style={{ fontFamily:C.mono, fontSize:9, color:C.forest, letterSpacing:2, textTransform:"uppercase", marginBottom:10 }}>+ Add Cross-Tabulation</div>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 2fr", gap:10, alignItems:"end" }}>
+                    <div>
+                      <label style={{ display:"block", fontFamily:C.mono, fontSize:8, color:C.sage, letterSpacing:1.5, textTransform:"uppercase", marginBottom:4 }}>Variable A</label>
+                      <input value={varA} onChange={e=>{setVarA(e.target.value);setCtError("");}} placeholder="e.g. S11.4 safety" style={{ ...inputStyle, fontSize:12 }} />
+                    </div>
+                    <div>
+                      <label style={{ display:"block", fontFamily:C.mono, fontSize:8, color:C.sage, letterSpacing:1.5, textTransform:"uppercase", marginBottom:4 }}>Variable B</label>
+                      <input value={varB} onChange={e=>{setVarB(e.target.value);setCtError("");}} placeholder="e.g. S5.1 displacement status" style={{ ...inputStyle, fontSize:12 }} />
+                    </div>
+                    <div>
+                      <label style={{ display:"block", fontFamily:C.mono, fontSize:8, color:C.sage, letterSpacing:1.5, textTransform:"uppercase", marginBottom:4 }}>Purpose <span style={{ color:C.textDim }}>(optional)</span></label>
+                      <div style={{ display:"flex", gap:8 }}>
+                        <input value={ctPurpose} onChange={e=>setCtPurpose(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addCustomCT()} placeholder="Why this cross-tab matters" style={{ ...inputStyle, fontSize:12, flex:1 }} />
+                        <button onClick={addCustomCT} style={{ ...btnPrimary, padding:"8px 16px", fontSize:12, flexShrink:0 }}>Add</button>
+                      </div>
+                    </div>
+                  </div>
+                  {ctError && <div style={{ marginTop:6, fontSize:11, color:C.rust, fontFamily:C.mono }}>{ctError}</div>}
+                </div>
+                {/* Table */}
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+                  <span style={{ fontFamily:C.mono, fontSize:10, color:C.textMuted }}>{(planData.crosstabs||[]).length} generated · <span style={{ color:customCrosstabs.length>0?C.forest:C.textDim }}>{customCrosstabs.length} custom</span></span>
+                  <button className="btn-outline" style={{ fontSize:11, padding:"4px 10px" }} onClick={()=>{ const h="Variables\tPurpose\tSource"; const r=allCrosstabs.map(c=>`${c.variables}\t${c.purpose}\t${c.custom?"Custom":"Generated"}`); navigator.clipboard.writeText([h,...r].join("\n")); flash("Copied!"); }}>Copy All (TSV)</button>
+                </div>
+                <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12, background:C.surface }}>
+                  <thead><tr>
+                    {["Variables","Analytical Purpose","Source"].map(h=><th key={h} style={{ padding:"9px 12px", textAlign:"left", fontFamily:C.mono, fontSize:8, letterSpacing:1.5, textTransform:"uppercase", color:"white", background:C.forest }}>{h}</th>)}
+                  </tr></thead>
+                  <tbody>
+                    {allCrosstabs.map((ct,i)=>(
+                      <tr key={i} style={{ borderBottom:`1px solid ${C.border}`, background:i%2===0?C.surface:C.surfaceAlt }}>
+                        <td style={{ padding:"10px 12px", color:C.forest, fontFamily:C.mono, fontSize:10, verticalAlign:"top", lineHeight:1.6, width:"40%" }}>{ct.variables}</td>
+                        <td style={{ padding:"10px 12px", color:C.textMid, verticalAlign:"top", lineHeight:1.5 }}>{ct.purpose}</td>
+                        <td style={{ padding:"10px 12px", verticalAlign:"top" }}>
+                          {ct.custom
+                            ? <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                                <span style={{ background:C.sagePale, border:`1px solid #B8D090`, color:C.forest, borderRadius:3, padding:"1px 7px", fontSize:9, fontFamily:C.mono }}>Custom</span>
+                                <button onClick={()=>setCustomCrosstabs(p=>p.filter((_,idx)=>idx!==i-(planData.crosstabs||[]).length))} style={{ background:"none", border:"none", color:C.textDim, cursor:"pointer", fontSize:15 }}>×</button>
+                              </div>
+                            : <span style={{ background:C.surfaceAlt, border:`1px solid ${C.border}`, color:C.textMuted, borderRadius:3, padding:"1px 7px", fontSize:9, fontFamily:C.mono }}>Generated</span>
+                          }
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>}
+
+            {/* COVERAGE GAPS */}
+            {activeTab==="gaps" && (
+              <div style={{ maxWidth:840 }}>
+                <div style={{ background:C.amberPale, border:`1px solid ${C.amberBorder}`, borderRadius:6, padding:"10px 14px", marginBottom:20, fontSize:12, color:C.textMid, lineHeight:1.6 }}>
+                  Mismatches between your logframe indicators and this form's question coverage. <strong>Critical</strong> gaps affect indicator reportability. <strong>Warnings</strong> affect completeness.
+                </div>
+                {(planData.gaps||[]).map((gap,i)=>{
+                  const s = {
+                    critical:{ border:C.rust, bg:C.rustPale, badge:C.rust, label:"Critical" },
+                    warning: { border:C.amber, bg:C.amberPale, badge:C.amber, label:"Warning" },
+                    info:    { border:"#4A6A9A", bg:"#EBF2FF", badge:"#4A6A9A", label:"Info" },
+                  }[gap.severity]||{ border:C.textDim, bg:C.surfaceAlt, badge:C.textMuted, label:gap.severity };
+                  return (
+                    <div key={i} style={{ background:"white", border:`1px solid ${C.border}`, borderLeft:`3px solid ${s.border}`, borderRadius:6, padding:"14px 16px", marginBottom:10 }}>
+                      <div style={{ display:"flex", alignItems:"flex-start", gap:10, marginBottom:8 }}>
+                        <span style={{ background:s.bg, border:`1px solid ${s.border}`, color:s.badge, borderRadius:3, padding:"2px 8px", fontSize:9, fontFamily:C.mono, flexShrink:0 }}>{s.label}</span>
+                        <div style={{ fontSize:13, fontWeight:600, color:C.text, lineHeight:1.4 }}>{gap.indicator}</div>
+                      </div>
+                      <div style={{ fontSize:12, color:s.badge, fontWeight:500, marginBottom:6 }}>{gap.issue}</div>
+                      <div style={{ fontSize:12, color:C.textMid, lineHeight:1.6, marginBottom:10 }}>{gap.detail}</div>
+                      <div style={{ background:C.sagePale, border:`1px solid #B8D090`, borderRadius:4, padding:"8px 12px", fontSize:11, color:C.textMid }}>
+                        <span style={{ fontFamily:C.mono, fontSize:8, color:C.forest, letterSpacing:1, textTransform:"uppercase", marginRight:8 }}>Action</span>{gap.action}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* PROTECTION FLAGS */}
+            {activeTab==="protection" && (
+              <div style={{ maxWidth:820 }}>
+                <div style={{ background:C.rustPale, border:`1px solid ${C.rustBorder}`, borderRadius:6, padding:"10px 14px", marginBottom:20, fontSize:12, color:C.textMid, lineHeight:1.6 }}>
+                  <strong style={{ color:C.rust }}>{protRows.length} rows</strong> contain protection flags requiring review by the relevant focal point before the analysis report is finalized.
+                </div>
+                {protRows.map((row,i)=>(
+                  <div key={i} style={{ background:"white", border:`1px solid ${C.rustBorder}`, borderLeft:`3px solid ${C.rust}`, borderRadius:6, padding:"14px 16px", marginBottom:10 }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
+                      <div>
+                        <div style={{ fontFamily:C.mono, fontSize:8, color:C.sage, letterSpacing:1.5, textTransform:"uppercase", marginBottom:3 }}>{row.section}</div>
+                        <div style={{ fontSize:14, fontWeight:600, color:C.text }}>{row.research_topic}</div>
+                      </div>
+                      <span style={{ fontFamily:C.mono, fontSize:9, color:C.forest, background:C.sagePale, border:`1px solid #B8D090`, borderRadius:3, padding:"2px 8px", flexShrink:0, marginLeft:12 }}>{row.relevant_questions}</span>
+                    </div>
+                    <div style={{ fontSize:12, color:C.textMid, marginBottom:10, lineHeight:1.55 }}>{row.research_question}</div>
+                    <div style={{ background:C.rustPale, border:`1px solid ${C.rustBorder}`, borderRadius:4, padding:"8px 12px", fontSize:12, color:C.rust, lineHeight:1.6 }}>
+                      <span style={{ fontFamily:C.mono, fontSize:8, letterSpacing:1, textTransform:"uppercase", marginRight:8 }}>⚑ Flag</span>{row.flags}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('app')).render(React.createElement(App));
+</script>
+</body>
+</html>
