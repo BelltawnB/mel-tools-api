@@ -1,9 +1,6 @@
 [build]
   functions = "netlify/functions"
 
-[functions]
-  timeout = 26
-
 # Proxy endpoint
 [[redirects]]
   from = "/api/proxy"
@@ -13,3 +10,6 @@
 # Daily summary email - 7am UTC every day
 [functions."daily-summary"]
   schedule = "0 7 * * *"
+
+[functions."proxy"]
+  timeout = 26
