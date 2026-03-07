@@ -1,6 +1,6 @@
 /**
  * mel-tools-api — Anthropic proxy
- * Handles: per-IP rate limiting, daily spend cap, usage logging
+ * Handles: origin allowlisting, per-IP rate limiting, daily spend cap, usage logging
  * All limits reset at midnight UTC
  */
 
@@ -9,6 +9,12 @@ const DAILY_SPEND_CAP = 5.00;
 
 const COST_PER_1K_INPUT  = 0.000003;
 const COST_PER_1K_OUTPUT = 0.000015;
+
+const ALLOWED_ORIGINS = new Set([
+  "https://belltawnb.github.io",
+  "http://localhost:8888",
+  "http://localhost:3000"
+]);
 
 async function redis(command, ...args) {
   const url = `${process.env.UPSTASH_REDIS_REST_URL}/${[command, ...args].map(encodeURIComponent).join("/")}`;
@@ -26,6 +32,19 @@ function logKey()   { return `log:${todayKey()}`; }
 
 exports.handler = async (event) => {
   const origin = event.headers.origin || event.headers.Origin || "";
+  const originAllowed = ALLOWED_ORIGINS.has(origin);
+
+  // Reject disallowed origins before doing anything else
+  if (!originAllowed) {
+    return {
+      statusCode: 403,
+      headers: {
+        "Access-Control-Allow-Origin": "null",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ error: "Forbidden origin" })
+    };
+  }
 
   if (event.httpMethod === "OPTIONS") return cors(200, "", origin);
   if (event.httpMethod !== "POST") return cors(405, JSON.stringify({ error: "Method not allowed" }), origin);
@@ -111,7 +130,7 @@ function cors(status, body, origin) {
   return {
     statusCode: status,
     headers: {
-      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Origin": origin,
       "Access-Control-Allow-Headers": "Content-Type",
       "Access-Control-Allow-Methods": "POST, OPTIONS",
       "Content-Type": "application/json"
