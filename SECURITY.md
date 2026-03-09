@@ -19,7 +19,7 @@ Only the current `main` branch is actively maintained.
 
 If you find a security issue in this repo, please do not open a public GitHub issue.
 
-Email: **belltawnb@gmail.com**  
+Email: [set in Netlify env vars]  
 Subject line: `[SECURITY] mel-tools-api`
 
 Include a description of the issue and steps to reproduce. I'll respond within 5 business days. If the issue is confirmed, I'll address it as quickly as possible and credit you if you'd like.
