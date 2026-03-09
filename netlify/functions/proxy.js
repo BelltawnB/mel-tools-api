@@ -1,7 +1,14 @@
 /**
- * mel-tools-api — Anthropic proxy
- * Handles: origin allowlisting, per-IP rate limiting, daily spend cap, usage logging
- * All limits reset at midnight UTC
+ * mel-tools-api — Anthropic proxy (streaming edition)
+ * 
+ * CHANGE LOG vs previous version:
+ * 1. Added stream:true path — relays SSE chunks from Anthropic so long
+ *    responses survive Netlify's 10s free-tier timeout.
+ * 2. Non-streaming path unchanged (IQR still uses it).
+ * 3. Usage logging deferred to message_stop event in stream path.
+ *
+ * Handles: origin allowlisting, per-IP rate limiting, daily spend cap, usage logging.
+ * All limits reset at midnight UTC.
  */
 
 const DAILY_IP_LIMIT = 20;
@@ -34,7 +41,6 @@ exports.handler = async (event) => {
   const origin = event.headers.origin || event.headers.Origin || "";
   const originAllowed = ALLOWED_ORIGINS.has(origin);
 
-  // Reject disallowed origins before doing anything else
   if (!originAllowed) {
     return {
       statusCode: 403,
@@ -80,10 +86,101 @@ exports.handler = async (event) => {
     return cors(400, JSON.stringify({ error: "Invalid JSON body" }), origin);
   }
 
-  // Strip internal _tool field before forwarding to Anthropic
-  const { _tool: tool = "unknown", ...anthropicBody } = body;
+  const { _tool: tool = "unknown", _stream: wantStream = false, ...anthropicBody } = body;
 
-  // Forward to Anthropic
+  // ─── STREAMING PATH ─────────────────────────────────────────────────────────
+  if (wantStream) {
+    const streamBody = { ...anthropicBody, stream: true };
+
+    let anthropicRes;
+    try {
+      anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01"
+        },
+        body: JSON.stringify(streamBody)
+      });
+    } catch (e) {
+      return cors(502, JSON.stringify({ error: "Failed to reach Anthropic API", detail: e.message }), origin);
+    }
+
+    if (!anthropicRes.ok) {
+      const errText = await anthropicRes.text();
+      return cors(anthropicRes.status, errText, origin);
+    }
+
+    // Read the full SSE stream, collect text + usage, then return as one JSON response.
+    // This keeps the Netlify function alive for the full generation (body is being read),
+    // while giving the client a simple JSON response identical to non-streaming.
+    const reader = anthropicRes.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let fullText = "";
+    let usage = { input_tokens: 0, output_tokens: 0 };
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      const lines = buffer.split("\n");
+      buffer = lines.pop(); // keep incomplete line in buffer
+
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue;
+        const payload = line.slice(6).trim();
+        if (payload === "[DONE]") continue;
+
+        try {
+          const evt = JSON.parse(payload);
+
+          if (evt.type === "content_block_delta" && evt.delta?.type === "text_delta") {
+            fullText += evt.delta.text;
+          }
+          if (evt.type === "message_delta" && evt.usage) {
+            usage.output_tokens = evt.usage.output_tokens || usage.output_tokens;
+          }
+          if (evt.type === "message_start" && evt.message?.usage) {
+            usage.input_tokens = evt.message.usage.input_tokens || 0;
+          }
+        } catch { /* skip malformed SSE lines */ }
+      }
+    }
+
+    // Log usage
+    const callCost = (usage.input_tokens / 1000 * COST_PER_1K_INPUT) +
+                     (usage.output_tokens / 1000 * COST_PER_1K_OUTPUT);
+
+    await redis("INCR", ipKey(ip));
+    await redis("EXPIRE", ipKey(ip), 90000);
+    await redis("INCRBYFLOAT", spendKey(), callCost.toFixed(6));
+    await redis("EXPIRE", spendKey(), 90000);
+
+    const logEntry = JSON.stringify({
+      t: new Date().toISOString(),
+      tool,
+      ip: ip.slice(0, 8) + "***",
+      in: usage.input_tokens,
+      out: usage.output_tokens,
+      cost: callCost.toFixed(6),
+      streamed: true
+    });
+    await redis("RPUSH", logKey(), logEntry);
+    await redis("EXPIRE", logKey(), 90000);
+
+    // Return in the same shape as non-streaming Anthropic response
+    const result = {
+      content: [{ type: "text", text: fullText }],
+      usage
+    };
+
+    return cors(200, JSON.stringify(result), origin);
+  }
+
+  // ─── NON-STREAMING PATH (unchanged) ─────────────────────────────────────────
   let anthropicRes, anthropicJson;
   try {
     anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
@@ -100,7 +197,6 @@ exports.handler = async (event) => {
     return cors(502, JSON.stringify({ error: "Failed to reach Anthropic API", detail: e.message }), origin);
   }
 
-  // Log usage + update counters
   if (anthropicRes.ok && anthropicJson.usage) {
     const { input_tokens = 0, output_tokens = 0 } = anthropicJson.usage;
     const callCost = (input_tokens / 1000 * COST_PER_1K_INPUT) +
