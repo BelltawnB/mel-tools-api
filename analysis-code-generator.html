@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analysis Code Generator — Burgen Belltawn MEL Tools</title>
+<meta name="description" content="AI-powered analysis code generator for humanitarian MEL. Paste your indicator spec, get production-ready R or Python code with standard methodology implementations.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23FDF5F0' stroke='%23C67B5C' stroke-width='2.5'/%3E%3Crect x='30.5' y='10' width='3' height='44' rx='1.5' fill='%23C67B5C'/%3E%3Ctext x='10' y='43' font-family='Georgia,serif' font-size='26' font-weight='bold' fill='%233D2B22'%3EB%3C/text%3E%3Ctext x='36' y='43' font-family='Georgia,serif' font-size='26' font-weight='bold' fill='%233D2B22'%3EB%3C/text%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&family=IBM+Plex+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --terra: #C67B5C; --terra-deep: #B56A4A; --terra-light: #E8C4B4;
+  --terra-glow: #FDF5F0; --cream: #FFF9F4; --bark: #3D2B22;
+  --ink: #2A2220; --ink-soft: #6B5D57; --sage: #7A9E87; --sage-light: #EDF4EF;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: 'Outfit', sans-serif; background: #FAFAF7; color: #2D2D2D; overflow-x: hidden; }
+.site-nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  padding: 1rem 2rem;
+  display: flex; justify-content: space-between; align-items: center;
+  background: rgba(255, 249, 244, 0.92);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(61, 43, 34, 0.06);
+}
+.site-nav a { text-decoration: none; }
+.nav-logo { display: flex; align-items: center; gap: 0.75rem; text-decoration: none; }
+.nav-logo-text { display: flex; flex-direction: column; line-height: 1.15; }
+.nav-logo-name { font-family: 'DM Serif Display', serif; font-size: 1.15rem; color: var(--ink); letter-spacing: -0.01em; }
+.nav-logo-surname { font-family: 'Outfit', sans-serif; font-size: 0.65rem; font-weight: 500; letter-spacing: 0.18em; color: var(--terra); text-transform: uppercase; }
+.convergence-logo { width: 38px; height: 28px; flex-shrink: 0; }
+.nav-links { display: flex; gap: 2rem; list-style: none; align-items: center; }
+.nav-links a { color: var(--ink-soft); font-size: 0.9rem; font-weight: 400; letter-spacing: 0.02em; transition: color 0.3s; position: relative; }
+.nav-links a::after { content: ''; position: absolute; bottom: -4px; left: 0; width: 0; height: 2px; background: var(--terra); border-radius: 2px; transition: width 0.3s ease; }
+.nav-links a:hover { color: var(--ink); }
+.nav-links a:hover::after { width: 100%; }
+.nav-links .current { color: var(--terra); font-weight: 500; }
+#app { margin-top: 96px; min-height: calc(100vh - 96px); }
+@keyframes acg-spin { to { transform: rotate(360deg); } }
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-thumb { background: #E8E8E0; border-radius: 3px; }
+::selection { background: #3D5A3D30; }
+@media (max-width: 768px) {
+  .site-nav { padding: 0.6rem 1rem; }
+  .nav-links { gap: 0.8rem; }
+  .nav-links a { font-size: 0.75rem; }
+}
+</style>
+</head>
+<body>
+<nav class="site-nav">
+  <a href="https://belltawnb.github.io/" class="nav-logo">
+    <svg class="convergence-logo" viewBox="0 0 52 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Burgen Belltawn logo">
+      <path d="M6 5 C16 5, 22 17, 28 17" stroke="#E8C4B4" stroke-width="2" stroke-linecap="round" fill="none"/>
+      <path d="M6 31 C16 31, 22 19, 28 17" stroke="#E8C4B4" stroke-width="2" stroke-linecap="round" fill="none"/>
+      <path d="M6 17 L28 17" stroke="#E8C4B4" stroke-width="2" stroke-linecap="round" fill="none"/>
+      <circle cx="6" cy="5" r="3" fill="#E8C4B4"/>
+      <circle cx="6" cy="31" r="3" fill="#E8C4B4"/>
+      <circle cx="6" cy="17" r="3" fill="#C67B5C"/>
+      <circle cx="28" cy="17" r="3.5" fill="#C67B5C"/>
+      <path d="M31.5 17 L46 17" stroke="#B56A4A" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+      <polyline points="40,11 47,17 40,23" stroke="#B56A4A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>
+    <div class="nav-logo-text">
+      <div class="nav-logo-name">Burgen</div>
+      <div class="nav-logo-surname">BELLTAWN</div>
+    </div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="https://belltawnb.github.io/#about">About</a></li>
+    <li><a href="https://belltawnb.github.io/#specialties">Specialties</a></li>
+    <li><a href="https://belltawnb.github.io/#tools" class="current">AI Tools</a></li>
+    <li><a href="https://belltawnb.github.io/#experience">Experience</a></li>
+    <li><a href="https://belltawnb.github.io/#contact">Contact</a></li>
+  </ul>
+</nav>
+<div style="background:#FDF5F0; border-bottom:1px solid #E8C4B4; padding:8px 24px; font-size:11px; color:#6B5549;">
+  🔒 This tool runs on a shared API — a daily usage limit applies.
+  Want unlimited access?
+  <a href="https://github.com/BelltawnB/mel-tools-api" target="_blank"
+     style="color:#C67B5C; font-weight:500; text-decoration:underline;">
+    Download the code on GitHub
+  </a>
+  and use your own Anthropic API key.
+</div>
+<div id="app"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<script type="text/babel">
+const { useState, useRef, useEffect, useCallback } = React;
+
+// ── Proxy config ──────────────────────────────────────────────────────────────
+const PROXY_URL = "https://mel-tools-api.burgen-b.workers.dev";
+const TOOL_NAME = "analysis-code-generator";
+
+async function callProxy(body) {
+  let res;
+  try {
+    res = await fetch(PROXY_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...body, _tool: TOOL_NAME })
+    });
+  } catch(e) {
+    throw new Error("Could not reach the API. Check your internet connection and try again. (Network error: " + e.message + ")");
+  }
+  if (res.status === 429) {
+    const j = await res.json();
+    throw new RateLimitError(j.message || "Daily limit reached. Try again in 24 hours, or download the code from GitHub to use your own API key.");
+  }
+  if (!res.ok) {
+    const j = await res.json().catch(() => ({}));
+    throw new Error(j.error || `API error ${res.status}`);
+  }
+  return res.json();
+}
+
+class RateLimitError extends Error {
+  constructor(msg) { super(msg); this.isRateLimit = true; }
+}
+
+// ── Design system ─────────────────────────────────────────────────────────────
+const C = {
+  bg: "#FAFAF7", surface: "#FFFFFF", surfaceAlt: "#F5F5F0",
+  border: "#E8E8E0", borderSubtle: "#F0F0EA",
+  text: "#2D2D2D", textMid: "#555555", textMuted: "#8A9A8A", textDim: "#B0B8B0",
+  accent: "#3D5A3D", accentLight: "#EDF2ED", accentHover: "#4A6E4A",
+  pass: "#5A9E6F", passBg: "#F0F8F2", passBorder: "#D0E8D6",
+  warn: "#C49A3D", warnBg: "#FDF8EE", warnBorder: "#EEDDB8",
+  fail: "#C45A5A", failBg: "#FDF0F0", failBorder: "#E8C8C8",
+  info: "#5A8AC4", infoBg: "#F0F4FA", infoBorder: "#C8D8E8",
+  codeBg: "#1E1E2E", codeText: "#CDD6F4",
+};
+const F = {
+  display: "'DM Sans', sans-serif",
+  body: "'DM Sans', sans-serif",
+  mono: "'IBM Plex Mono', monospace",
+};
+
+const cardStyle = { background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "16px 20px", marginBottom: 12 };
+const inputStyle = { width:"100%", boxSizing:"border-box", padding:"8px 10px", background:C.surfaceAlt, border:`1px solid ${C.border}`, borderRadius:4, color:C.text, fontFamily:F.body, fontSize:13, outline:"none" };
+const btnPrimary = { padding:"8px 16px", background:C.accent, color:"#fff", border:"none", borderRadius:6, fontFamily:F.body, fontWeight:600, fontSize:13, cursor:"pointer" };
+const btnOutline = { padding:"8px 16px", background:"transparent", color:C.accent, border:`1px solid ${C.border}`, borderRadius:6, fontFamily:F.body, fontWeight:500, fontSize:13, cursor:"pointer" };
+
+// ── Example data ──────────────────────────────────────────────────────────────
+const EXAMPLE_INDICATOR = {
+  name: "Percentage of households with acceptable Food Consumption Score",
+  definition: "Proportion of surveyed households with FCS >35 (acceptable threshold), calculated from 7-day dietary recall using WFP standard food group weights",
+  resultsLevel: "Outcome",
+  unit: "%",
+  numerator: "Households with FCS > 35",
+  denominator: "Total surveyed households",
+  baseline: "34%",
+  target: "55%",
+  disaggregations: "Sex of HoH, displacement status, governorate",
+  frequency: "Quarterly PDM",
+  meansOfVerification: "PDM survey",
+  surveyQuestions: "In the past 7 days, how many days did your household consume: cereals/roots, pulses, vegetables, fruit, meat/fish/eggs, dairy, sugar/oil",
+  responseOptions: "Frequency 0–7 days for each food group",
+  analysisMethod: "WFP FCS methodology with standard weights: cereals×2, pulses×3, vegetables×1, fruit×1, meat/fish/eggs×4, dairy×4, sugar×0.5, oil×0.5"
+};
+
+const EXAMPLE_DATA_SPEC = `survey_id  hh_id  enumerator  governorate  displacement_status  sex_hoh  cereals_days  pulses_days  veg_days  fruit_days  meat_days  dairy_days  sugar_days  oil_days  weight
+1001  HH001  EN01  Taiz  IDP  Male  7  4  5  2  3  1  7  6  1.24
+1002  HH002  EN01  Taiz  Host  Female  6  3  4  1  1  0  7  5  0.98
+1003  HH003  EN02  Aden  IDP  Male  7  5  6  3  4  2  7  7  1.45`;
+
+const EXAMPLE_CONTEXT = "Program: Almaran SRI Pilot, FSL sector. FCS thresholds: Poor <28, Borderline 28–42, Acceptable >42 (Yemen-adapted thresholds per WFP Yemen 2023 calibration). Use weighted analysis throughout. Flag households missing >2 food group questions as incomplete.";
+
+// ── Demo result (pre-generated) ───────────────────────────────────────────────
+const DEMO_RESULT = {
+  language: "r",
+  indicator_name: "Percentage of households with acceptable Food Consumption Score",
+  methodology: "FCS",
+  code: `# =============================================================================
+# FOOD CONSUMPTION SCORE (FCS) ANALYSIS
+# Indicator: % households with acceptable FCS
+# Program: Almaran SRI Pilot — FSL Sector
+# Methodology: WFP FCS Standard (Yemen-adapted thresholds)
+# Generated by: Analysis Code Generator — belltawnb.github.io
+# =============================================================================
+
+library(tidyverse)
+library(survey)
+library(gt)
+
+# -----------------------------------------------------------------------------
+# 1. LOAD DATA
+# -----------------------------------------------------------------------------
+# Replace with your actual data path
+df <- read_csv("pdm_data.csv")
+
+# -----------------------------------------------------------------------------
+# 2. DATA VALIDATION
+# -----------------------------------------------------------------------------
+fcs_cols <- c("cereals_days", "pulses_days", "veg_days", "fruit_days",
+              "meat_days", "dairy_days", "sugar_days", "oil_days")
+
+# Flag incomplete records (>2 food groups missing)
+df <- df %>%
+  mutate(
+    n_missing_fg = rowSums(is.na(select(., all_of(fcs_cols)))),
+    fcs_complete = n_missing_fg <= 2
+  )
+
+cat("Records flagged incomplete (>2 food groups missing):",
+    sum(!df$fcs_complete), "\\n")
+
+# Treat remaining NAs as 0 (household did not consume)
+df <- df %>%
+  mutate(across(all_of(fcs_cols), ~replace_na(., 0)))
+
+# Range check: days must be 0–7
+range_issues <- df %>%
+  filter(if_any(all_of(fcs_cols), ~. < 0 | . > 7))
+
+if (nrow(range_issues) > 0) {
+  warning(paste(nrow(range_issues), "records have out-of-range values (0–7 expected). Review before proceeding."))
+}
+
+# -----------------------------------------------------------------------------
+# 3. FCS CALCULATION
+# WFP standard weights: cereals×2, pulses×3, veg×1, fruit×1,
+#                       meat/fish/eggs×4, dairy×4, sugar×0.5, oil×0.5
+# Yemen-adapted thresholds: Poor <28, Borderline 28–42, Acceptable >42
+# -----------------------------------------------------------------------------
+df <- df %>%
+  mutate(
+    fcs = (cereals_days * 2) +
+          (pulses_days  * 3) +
+          (veg_days     * 1) +
+          (fruit_days   * 1) +
+          (meat_days    * 4) +
+          (dairy_days   * 4) +
+          (sugar_days   * 0.5) +
+          (oil_days     * 0.5),
+    fcs_category = case_when(
+      !fcs_complete        ~ "Incomplete",
+      fcs < 28             ~ "Poor",
+      fcs >= 28 & fcs <= 42 ~ "Borderline",
+      fcs > 42             ~ "Acceptable",
+      TRUE                 ~ NA_character_
+    )
+  )
+
+# -----------------------------------------------------------------------------
+# 4. WEIGHTED SURVEY DESIGN
+# -----------------------------------------------------------------------------
+svy <- svydesign(ids = ~1, weights = ~weight, data = filter(df, fcs_complete))
+
+# -----------------------------------------------------------------------------
+# 5. HEADLINE INDICATOR — % households with Acceptable FCS
+# -----------------------------------------------------------------------------
+fcs_acceptable <- svymean(~I(fcs_category == "Acceptable"), svy, na.rm = TRUE)
+
+cat("\\n--- HEADLINE INDICATOR ---\\n")
+cat(sprintf("Households with Acceptable FCS (>42): %.1f%% (95%% CI: %.1f%%–%.1f%%)\\n",
+    coef(fcs_acceptable) * 100,
+    confint(fcs_acceptable)[1] * 100,
+    confint(fcs_acceptable)[2] * 100))
+
+# -----------------------------------------------------------------------------
+# 6. FCS CATEGORY DISTRIBUTION
+# -----------------------------------------------------------------------------
+fcs_dist <- svymean(~fcs_category, svy, na.rm = TRUE)
+cat("\\n--- FCS DISTRIBUTION ---\\n")
+print(round(coef(fcs_dist) * 100, 1))
+
+# -----------------------------------------------------------------------------
+# 7. DISAGGREGATIONS
+# Sex of HoH, displacement status, governorate
+# -----------------------------------------------------------------------------
+disagg_vars <- c("sex_hoh", "displacement_status", "governorate")
+
+disagg_results <- map_dfr(disagg_vars, function(var) {
+  svy_sub <- update(svy, grp = df[[var]][df$fcs_complete])
+  svyby(~I(fcs_category == "Acceptable"), ~grp, svy_sub, svymean, na.rm = TRUE) %>%
+    as_tibble() %>%
+    rename(pct_acceptable = \`I(fcs_category == "Acceptable")TRUE\`) %>%
+    mutate(
+      disagg_var = var,
+      disagg_value = as.character(grp),
+      pct_acceptable = round(pct_acceptable * 100, 1)
+    ) %>%
+    select(disagg_var, disagg_value, pct_acceptable)
+})
+
+cat("\\n--- DISAGGREGATED RESULTS ---\\n")
+print(disagg_results)
+
+# -----------------------------------------------------------------------------
+# 8. EXPORT RESULTS
+# -----------------------------------------------------------------------------
+results_summary <- tibble(
+  indicator = "% households with Acceptable FCS",
+  methodology = "WFP FCS (Yemen-adapted: Acceptable >42)",
+  n_total = nrow(df),
+  n_complete = sum(df$fcs_complete),
+  n_incomplete = sum(!df$fcs_complete),
+  pct_acceptable = round(coef(fcs_acceptable) * 100, 1),
+  ci_lower = round(confint(fcs_acceptable)[1] * 100, 1),
+  ci_upper = round(confint(fcs_acceptable)[2] * 100, 1)
+)
+
+write_csv(results_summary, "fcs_results_summary.csv")
+write_csv(disagg_results,  "fcs_results_disaggregated.csv")
+
+cat("\\nExport complete: fcs_results_summary.csv, fcs_results_disaggregated.csv\\n")`,
+  notes: [
+    "Yemen-adapted thresholds applied: Poor <28, Borderline 28–42, Acceptable >42 (not WFP global defaults of <21/<35).",
+    "Households with >2 missing food group responses are flagged and excluded from weighted estimates.",
+    "All percentage estimates use survey-weighted means via the `survey` package. Unweighted counts are included for transparency.",
+    "Disaggregation loops over sex_hoh, displacement_status, and governorate — verify these column names match your dataset.",
+    "FCS weights are hard-coded per WFP standard; do not adjust without methodology justification."
+  ],
+  assumptions: [
+    "Column names match those in your data specification exactly (case-sensitive).",
+    "The `weight` column contains pre-calculated sampling weights.",
+    "Missing food group days are treated as 0 (not consumed) after the completeness flag is applied."
+  ]
+};
+
+// ── System prompt ─────────────────────────────────────────────────────────────
+function buildSystemPrompt() {
+  return `You are a senior MEL data analyst specializing in humanitarian and international development programs. You write production-ready analysis code for field survey data.
+
+STANDARD HUMANITARIAN INDICATOR METHODOLOGIES — apply these exactly unless context notes specify overrides:
+
+FCS (Food Consumption Score):
+- 7-day recall across 8 food groups
+- WFP weights: cereals×2, pulses×3, vegetables×1, fruit×1, meat/fish/eggs×4, dairy×4, sugar×0.5, oil×0.5
+- Global thresholds (default): Poor <21, Borderline 21-35, Acceptable >35
+- Note: Yemen and some contexts use adjusted thresholds (Poor <28, Borderline 28-42, Acceptable >42) — apply if context notes specify
+
+HHS (Household Hunger Scale):
+- 3 questions, each with frequency: never (0), rarely (1), sometimes (2), often (3)
+- Score = sum of frequencies for "Yes" responses only (0-6)
+- Categories: Little/None (0-1), Moderate (2-3), Severe (4-6)
+
+rCSI (Reduced Coping Strategy Index):
+- 5 strategies with WFP weights: less preferred food×1, borrow food×2, reduce meals×1, reduce portions×1, restrict adult consumption×3
+- Score = sum(days × weight) for each strategy (0-7 days each)
+- Lower scores indicate less stress; no universal threshold — compare against baseline
+
+HDDS (Household Dietary Diversity Score):
+- 12 food groups, 24-hour recall, binary (consumed/not consumed)
+- Score = count of groups consumed (0-12)
+
+MUAC (Mid-Upper Arm Circumference):
+- SAM: <115mm (or <11.5cm), MAM: 115-125mm, Normal: ≥125mm
+- For children 6-59 months; specify if adult MUAC (different thresholds)
+
+VISUALIZATION RULES — when a chart type is specified, implement it exactly:
+- "stacked bar chart" → ggplot2 geom_bar(position="fill") or geom_col(position="stack"), with baseline/target reference lines if provided
+- "grouped bar chart" → geom_bar(position="dodge") or geom_col(position="dodge")
+- "horizontal bar chart" → coord_flip() on a bar chart
+- "box plot" → geom_boxplot() with individual points geom_jitter(alpha=0.3)
+- "line chart" → geom_line() + geom_point(), baseline/target as horizontal dashed lines
+- "pie chart" → use a donut variant: geom_bar on polar coordinates, or note that bar charts are preferred for accessibility
+- "radar chart" → use fmsb::radarchart(); include library installation note
+- "funnel chart" → simulate with horizontal bars in descending order (geom_col + coord_flip)
+- "heatmap" → geom_tile() with scale_fill_gradient
+
+ALL CHART REQUIREMENTS:
+1. Use ggplot2 (R) or matplotlib/seaborn (Python)
+2. Save to /outputs folder with ggsave() or plt.savefig() — PNG, 200dpi, 8×5 inches
+3. Apply clean theme: theme_minimal() with axis labels, title, caption
+4. Caption must include: indicator name, data source, date generated placeholder
+5. For disaggregated charts: facet_wrap() by disaggregation variable OR separate ggsave() per group
+6. Add baseline and target reference lines wherever baseline/target values are provided
+7. Color palette: use colorblind-safe palette — scale_fill_brewer(palette="Set2") or manual c("#2D5016","#7A9E87","#C67B5C","#C49A3D","#5A8AC4")
+
+CROSS-TAB REQUIREMENTS (when row_type is "crosstab"):
+1. Produce a formatted cross-tabulation table using gt package (R) or pandas styler (Python)
+2. Include row percentages, column percentages, and cell counts
+3. Export table as CSV AND save gt table as PNG via gt::gtsave()
+4. Follow with the specified visualization
+
+CODE REQUIREMENTS:
+1. Include data validation: range checks, missing value counts, completeness flags
+2. Use weighted analysis when weights column is present
+3. Produce disaggregated results for all specified disaggregation variables
+4. Include clear comments explaining each calculation step
+5. Add a header block with: topic name, methodology if applicable, program context, date placeholder
+6. Create /outputs directory if it doesn't exist: dir.create("outputs", showWarnings=FALSE)
+7. Use idiomatic, readable code — not minimized
+8. Language auto-selection: use R if user specifies R or if not specified; use Python if specified
+
+OUTPUT FORMAT — respond with ONLY valid JSON, no markdown, no explanation outside JSON:
+{
+  "language": "r" or "python",
+  "indicator_name": "string — the research topic or indicator name",
+  "methodology": "FCS" | "HHS" | "rCSI" | "HDDS" | "MUAC" | "crosstab" | "custom" | null,
+  "code": "full analysis script as a single string — use \\n for newlines, escape all backslashes and quotes",
+  "outputs": ["list of files the script will produce, e.g. outputs/fcs_results.csv, outputs/fcs_chart.png"],
+  "notes": ["array of important methodological notes or caveats"],
+  "assumptions": ["array of assumptions about the data structure"]
+}`;
+}
+
+function buildUserPrompt(indicator, dataSpec, langPref, context, apgRow) {
+  const parts = [];
+
+  if (apgRow) {
+    // APG row mode: richer context from Analysis Plan Generator
+    parts.push(`ROW TYPE: ${apgRow.row_type === "crosstab" ? "CROSS-TABULATION" : "ANALYSIS PLAN ROW"}`);
+    parts.push(`\nANALYSIS ROW DATA:\n${JSON.stringify(apgRow, null, 2)}`);
+    if (indicator && indicator.name) {
+      parts.push(`\nINDICATOR SPEC (from logframe):\n${JSON.stringify(indicator, null, 2)}`);
+    }
+  } else {
+    parts.push(`INDICATOR SPECIFICATION:\n${JSON.stringify(indicator, null, 2)}`);
+  }
+
+  if (dataSpec && dataSpec.trim()) parts.push(`\nDATA SPECIFICATION (column names / sample rows):\n${dataSpec}`);
+  if (langPref && langPref !== "auto") parts.push(`\nLANGUAGE: ${langPref}`);
+  if (context && context.trim()) parts.push(`\nADDITIONAL CONTEXT (program-specific thresholds, notes):\n${context}`);
+
+  parts.push(`\nGenerate a complete, self-contained analysis script including:
+1. The full calculation / cross-tabulation
+2. The exact chart type specified (${apgRow?.visualization || "as appropriate for the indicator"})
+3. PNG export of chart(s) to /outputs folder
+4. CSV export of results table
+${apgRow?.row_type === "crosstab" ? "5. Formatted gt/pandas cross-tab table saved as PNG to /outputs" : ""}
+
+Return ONLY the JSON object — no markdown fences, no preamble.`);
+
+  return parts.join("\n");
+}
+
+// ── JSON repair ───────────────────────────────────────────────────────────────
+async function parseJSON(raw, setStatus) {
+  let clean = raw.replace(/```json|```/g, "").trim();
+  const fb = clean.indexOf("{"); const lb = clean.lastIndexOf("}");
+  if (fb !== -1 && lb > fb) clean = clean.substring(fb, lb + 1);
+  try { return JSON.parse(clean); } catch(e1) {
+    let repaired = clean
+      .replace(/,[ \t\n\r]*([}\]])/g, "$1")
+      .replace(/[\u0000-\u001F\u007F]/g, " ");
+    try { return JSON.parse(repaired); } catch(e2) {
+      if (setStatus) setStatus("Repairing response…");
+      const fixRes = await callProxy({
+        model: "claude-sonnet-4-5-20250929", max_tokens: 4096,
+        messages: [{ role: "user", content: "Fix this malformed JSON so it parses correctly. Return ONLY valid JSON, nothing else:\n\n" + clean }]
+      });
+      const fixRaw = fixRes.content?.map(b => b.text || "").join("") || "{}";
+      let fixClean = fixRaw.replace(/```json|```/g, "").trim();
+      const fb2 = fixClean.indexOf("{"); const lb2 = fixClean.lastIndexOf("}");
+      if (fb2 !== -1 && lb2 > fb2) fixClean = fixClean.substring(fb2, lb2 + 1);
+      return JSON.parse(fixClean);
+    }
+  }
+}
+
+// ── Spinner ───────────────────────────────────────────────────────────────────
+function Spinner({ label }) {
+  return (
+    <div style={{ display:"flex", alignItems:"center", gap:10, padding:"20px 0" }}>
+      <div style={{ width:16, height:16, border:`2px solid ${C.border}`, borderTopColor:C.accent, borderRadius:"50%", animation:"acg-spin 0.8s linear infinite", flexShrink:0 }} />
+      <span style={{ fontSize:12, color:C.textMuted, fontFamily:F.mono }}>{label || "Working…"}</span>
+    </div>
+  );
+}
+
+// ── Code block with copy ───────────────────────────────────────────────────────
+function CodeBlock({ code, language }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <div style={{ position:"relative", borderRadius:8, overflow:"hidden", border:`1px solid ${C.border}` }}>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"8px 14px", background:"#2A2A3E", borderBottom:"1px solid rgba(255,255,255,0.08)" }}>
+        <span style={{ fontFamily:F.mono, fontSize:11, color:"#7C7CA0", letterSpacing:"0.06em" }}>{language ? language.toUpperCase() : "CODE"}</span>
+        <button onClick={copy} style={{ background:"transparent", border:`1px solid rgba(255,255,255,0.15)`, borderRadius:4, padding:"3px 10px", color: copied ? "#5A9E6F" : "#CDD6F4", fontSize:11, cursor:"pointer", fontFamily:F.mono, transition:"color 0.2s" }}>
+          {copied ? "✓ copied" : "copy"}
+        </button>
+      </div>
+      <pre style={{ background:C.codeBg, color:C.codeText, padding:"16px 18px", overflowX:"auto", fontSize:12, lineHeight:1.65, fontFamily:F.mono, margin:0, maxHeight:520, overflowY:"auto" }}>
+        <code>{code}</code>
+      </pre>
+    </div>
+  );
+}
+
+// ── Indicator field editor ─────────────────────────────────────────────────────
+const IND_FIELDS = [
+  ["name", "Indicator Name", true],
+  ["definition", "Definition", false],
+  ["resultsLevel", "Results Level", false],
+  ["unit", "Unit", false],
+  ["numerator", "Numerator", false],
+  ["denominator", "Denominator", false],
+  ["baseline", "Baseline", false],
+  ["target", "Target", false],
+  ["disaggregations", "Disaggregations", false],
+  ["frequency", "Collection Frequency", false],
+  ["meansOfVerification", "Means of Verification", false],
+  ["surveyQuestions", "Survey Questions", false],
+  ["responseOptions", "Response Options", false],
+  ["analysisMethod", "Analysis Method", false],
+];
+
+function IndicatorEditor({ indicator, onChange }) {
+  return (
+    <div>
+      {IND_FIELDS.map(([key, label, required]) => {
+        const val = indicator[key] || "";
+        const isLong = key === "surveyQuestions" || key === "definition" || key === "analysisMethod";
+        return (
+          <div key={key} style={{ marginBottom:10 }}>
+            <label style={{ display:"block", fontSize:11, fontWeight:600, color:C.textMuted, fontFamily:F.mono, letterSpacing:"0.04em", marginBottom:3 }}>
+              {label.toUpperCase()}{required && <span style={{ color:C.fail }}> *</span>}
+            </label>
+            {isLong ? (
+              <textarea
+                value={val}
+                onChange={e => onChange(key, e.target.value)}
+                style={{ ...inputStyle, height:72, resize:"vertical", fontFamily:F.mono, fontSize:12, lineHeight:1.5 }}
+              />
+            ) : (
+              <input
+                type="text"
+                value={val}
+                onChange={e => onChange(key, e.target.value)}
+                style={{ ...inputStyle, fontFamily: key === "name" ? F.body : F.mono, fontSize:12 }}
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Views ─────────────────────────────────────────────────────────────────────
+const VIEWS = { INPUT:"input", GENERATING:"generating", RESULT:"result" };
+
+// ── Main app ──────────────────────────────────────────────────────────────────
+function AnalysisCodeGenerator() {
+  const [view, setView]           = useState(VIEWS.INPUT);
+  const [inputMode, setInputMode] = useState("manual"); // "manual" | "json" | "apg"
+  const [indicator, setIndicator] = useState({});
+  const [apgRow, setApgRow]       = useState(null); // APG analysis plan row
+  const [jsonPaste, setJsonPaste] = useState("");
+  const [jsonError, setJsonError] = useState(null);
+  const [dataSpec, setDataSpec]   = useState("");
+  const [langPref, setLangPref]   = useState("auto");
+  const [context, setContext]     = useState("");
+  const [genStatus, setGenStatus] = useState("Generating code…");
+  const [result, setResult]       = useState(null);
+  const [error, setError]         = useState(null);
+  const [isRateLimit, setIsRateLimit] = useState(false);
+  const [copyMsg, setCopyMsg]     = useState("");
+
+  const flash = (msg) => { setCopyMsg(msg); setTimeout(() => setCopyMsg(""), 2000); };
+
+  // On mount: check for payload passed via URL hash from APG
+  useEffect(() => {
+    try {
+      const hash = window.location.hash;
+      if (hash && hash.startsWith("#indicator=")) {
+        const encoded = hash.slice("#indicator=".length);
+        const decoded = JSON.parse(decodeURIComponent(encoded));
+
+        // APG row payload: { apg_row: {...}, indicator: {...}, context: "..." }
+        if (decoded.apg_row) {
+          setApgRow(decoded.apg_row);
+          if (decoded.indicator) setIndicator(decoded.indicator);
+          if (decoded.context) setContext(decoded.context);
+          if (decoded.data_spec) setDataSpec(decoded.data_spec);
+          setInputMode("apg");
+          flash("Loaded from Analysis Plan Generator ✓");
+        } else {
+          // Legacy: plain indicator object
+          const ind = decoded.indicator || decoded;
+          if (ind && ind.name) {
+            setIndicator(ind);
+            setInputMode("manual");
+            flash("Indicator loaded from Analysis Plan Generator ✓");
+          }
+        }
+        history.replaceState(null, "", window.location.pathname);
+      }
+    } catch(e) { /* ignore malformed hash */ }
+  }, []);
+
+  const updateField = (key, val) => setIndicator(prev => ({ ...prev, [key]: val }));
+
+  // Parse JSON paste from IQR or manual JSON
+  const applyJsonPaste = () => {
+    setJsonError(null);
+    try {
+      let clean = jsonPaste.trim();
+      // Handle IQR export format: { "indicator": {...} }
+      const parsed = JSON.parse(clean);
+      const ind = parsed.indicator || parsed;
+      if (!ind || typeof ind !== "object") throw new Error("Expected an indicator object.");
+      setIndicator(ind);
+      setInputMode("manual");
+      flash("Fields loaded ✓");
+    } catch(e) {
+      setJsonError("Could not parse JSON: " + e.message);
+    }
+  };
+
+  const loadExample = () => {
+    setIndicator(EXAMPLE_INDICATOR);
+    setDataSpec(EXAMPLE_DATA_SPEC);
+    setContext(EXAMPLE_CONTEXT);
+    setLangPref("r");
+    setInputMode("manual");
+  };
+
+  const runDemo = () => {
+    setIndicator(EXAMPLE_INDICATOR);
+    setDataSpec(EXAMPLE_DATA_SPEC);
+    setContext(EXAMPLE_CONTEXT);
+    setLangPref("r");
+    setResult(DEMO_RESULT);
+    setView(VIEWS.RESULT);
+  };
+
+  const generate = async () => {
+    setError(null); setIsRateLimit(false);
+    setGenStatus(apgRow ? "Generating analysis + visualization code…" : "Generating code…");
+    setView(VIEWS.GENERATING);
+    try {
+      const j = await callProxy({
+        model: "claude-sonnet-4-5-20250929",
+        max_tokens: 4096,
+        system: buildSystemPrompt(),
+        messages: [{ role: "user", content: buildUserPrompt(indicator, dataSpec, langPref, context, apgRow) }]
+      });
+      const raw = j.content?.map(b => b.text || "").join("") || "{}";
+      const parsed = await parseJSON(raw, setGenStatus);
+      setResult(parsed);
+      setView(VIEWS.RESULT);
+    } catch(e) {
+      setError(e.message);
+      setIsRateLimit(!!e.isRateLimit);
+      setView(VIEWS.INPUT);
+    }
+  };
+
+  const downloadFile = () => {
+    if (!result?.code) return;
+    const ext = result.language === "python" ? "py" : "R";
+    const blob = new Blob([result.code], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `analysis_code_${Date.now()}.${ext}`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadExcel = () => {
+    if (!result) return;
+    const wb = XLSX.utils.book_new();
+    const safe = v => { if (v == null) return ""; const s = String(v); return /^[=+\-@]/.test(s) ? " " + s : s; };
+    const FOREST = "2D5016";
+    const BORDER = { style:"thin", color:{rgb:"C0C0C0"} };
+    const BORDER_ALL = { top:BORDER, bottom:BORDER, left:BORDER, right:BORDER };
+
+    const styleHeaders = (ws, ncols) => {
+      for (let c = 0; c < ncols; c++) {
+        const addr = XLSX.utils.encode_cell({r:0,c});
+        if (!ws[addr]) continue;
+        ws[addr].s = { font:{bold:true,color:{rgb:"FFFFFF"},name:"Cambria",sz:10}, fill:{fgColor:{rgb:FOREST}}, alignment:{wrapText:true,vertical:"center",horizontal:"center"}, border:BORDER_ALL };
+      }
+    };
+    const styleData = (ws, nrows, ncols) => {
+      for (let r = 1; r < nrows; r++) {
+        const isEven = r % 2 === 0;
+        for (let c = 0; c < ncols; c++) {
+          const addr = XLSX.utils.encode_cell({r,c});
+          if (!ws[addr]) ws[addr] = {t:"s",v:""};
+          const base = { font:{name:"Calibri",sz:9,color:{rgb:"333333"}}, alignment:{wrapText:true,vertical:"top"}, border:BORDER_ALL };
+          if (isEven) base.fill = { fgColor:{rgb:"F7FAF4"} };
+          ws[addr].s = base;
+        }
+      }
+    };
+
+    // Sheet 1: Code
+    const codeRows = (result.code || "").split("\n").map((line, i) => [i + 1, safe(line)]);
+    const codeH = ["Line", "Code"];
+    const ws1 = XLSX.utils.aoa_to_sheet([codeH, ...codeRows]);
+    ws1["!cols"] = [{wch:6},{wch:120}];
+    ws1["!rows"] = [{hpt:18}, ...codeRows.map(() => ({hpt:14}))];
+    ws1["!freeze"] = {xSplit:0,ySplit:1};
+    styleHeaders(ws1, codeH.length);
+    XLSX.utils.book_append_sheet(wb, ws1, "Analysis Code");
+
+    // Sheet 2: Indicator Spec
+    const specRows = IND_FIELDS.map(([key, label]) => [label, safe(indicator[key])]);
+    const specH = ["Field", "Value"];
+    const ws2 = XLSX.utils.aoa_to_sheet([specH, ...specRows]);
+    ws2["!cols"] = [{wch:22},{wch:80}];
+    ws2["!rows"] = [{hpt:20}, ...specRows.map(() => ({hpt:40}))];
+    ws2["!freeze"] = {xSplit:0,ySplit:1};
+    styleHeaders(ws2, specH.length); styleData(ws2, specRows.length + 1, specH.length);
+    XLSX.utils.book_append_sheet(wb, ws2, "Indicator Spec");
+
+    // Sheet 3: Notes & Assumptions
+    const noteRows = [
+      ["NOTES", ""],
+      ...((result.notes || []).map((n, i) => [`${i+1}.`, safe(n)])),
+      ["", ""],
+      ["ASSUMPTIONS", ""],
+      ...((result.assumptions || []).map((a, i) => [`${i+1}.`, safe(a)])),
+      ["", ""],
+      dataSpec ? ["DATA SPEC", safe(dataSpec)] : null,
+      context ? ["CONTEXT", safe(context)] : null,
+    ].filter(Boolean);
+    const ws3 = XLSX.utils.aoa_to_sheet(noteRows);
+    ws3["!cols"] = [{wch:16},{wch:100}];
+    ws3["!rows"] = noteRows.map(() => ({hpt:40}));
+    if (ws3["A1"]) ws3["A1"].s = { font:{bold:true,sz:12,name:"Cambria",color:{rgb:FOREST}} };
+    XLSX.utils.book_append_sheet(wb, ws3, "Notes");
+
+    // Sheet 4: About
+    const aboutData = [
+      ["ANALYSIS CODE GENERATOR", ""],["",""],
+      ["Consultant","Burgen Belltawn"],["Title","MEL Specialist"],
+      ["Email","belltawnb@gmail.com"],["Website","https://belltawnb.github.io"],["",""],
+      ["Tool","Analysis Code Generator"],["Tool URL","https://belltawnb.github.io/tools/analysis-code-generator.html"],
+      ["Generated",""+new Date().toLocaleDateString("en-GB",{year:"numeric",month:"long",day:"numeric"})],["",""],
+      ["Disclaimer","This code was generated using AI-assisted MEL system design."],
+      ["","Review all code against your program's data structure before running in production."],
+      ["","Threshold values and methodology parameters should be validated against your program's SOP."],
+    ];
+    const ws4 = XLSX.utils.aoa_to_sheet(aboutData);
+    ws4["!cols"] = [{wch:16},{wch:72}];
+    if (ws4["A1"]) ws4["A1"].s = { font:{bold:true,sz:14,name:"Cambria",color:{rgb:FOREST}} };
+    ["A3","A4","A5","A6","A8","A9","A10","A12"].forEach(addr => {
+      if (ws4[addr]) ws4[addr].s = { font:{bold:true,name:"Calibri",sz:10,color:{rgb:FOREST}} };
+    });
+    XLSX.utils.book_append_sheet(wb, ws4, "About");
+
+    XLSX.writeFile(wb, "Analysis_Code_Generator_Output.xlsx");
+  };
+
+  const hasIndicator = !!(indicator.name && indicator.name.trim()) || !!(apgRow && (apgRow.research_topic || apgRow.variables));
+
+  return (
+    <div style={{ minHeight:"100vh", background:C.bg, fontFamily:F.body, color:C.text }}>
+      <style>{`
+        @keyframes acg-spin { to { transform: rotate(360deg); } }
+        input:focus, textarea:focus, select:focus { border-color: ${C.accent} !important; outline: none; }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: ${C.border}; border-radius: 3px; }
+      `}</style>
+
+      {/* HEADER */}
+      <div style={{ padding:"14px 24px", borderBottom:`1px solid ${C.border}`, background:C.surface, display:"flex", alignItems:"center", gap:12, position:"sticky", top:0, zIndex:100 }}>
+        <div>
+          <div style={{ fontFamily:F.display, fontWeight:700, fontSize:15, color:C.text }}>Analysis Code Generator</div>
+          <div style={{ fontFamily:F.mono, fontSize:10, color:C.textDim, letterSpacing:"0.06em" }}>MEL TOOLS</div>
+        </div>
+        <div style={{ flex:1 }} />
+        {copyMsg && <span style={{ fontFamily:F.mono, fontSize:11, color:C.pass, fontWeight:500 }}>{copyMsg}</span>}
+        <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+          {result && (
+            <>
+              <button onClick={() => { setView(VIEWS.INPUT); setResult(null); setApgRow(null); setInputMode("manual"); }} style={{ ...btnOutline, fontSize:11, padding:"5px 12px" }}>← New</button>
+              <button onClick={downloadFile} style={{ ...btnOutline, fontSize:11, padding:"5px 12px" }}>⬇ .{result.language === "python" ? "py" : "R"}</button>
+              <button onClick={downloadExcel} style={{ ...btnPrimary, fontSize:11, padding:"5px 14px" }}>⬇ Excel</button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* ═══ INPUT ═══ */}
+      {view === VIEWS.INPUT && (
+        <div style={{ maxWidth:900, margin:"0 auto", padding:"28px 24px", display:"grid", gridTemplateColumns:"1fr 1fr", gap:20, alignItems:"start" }}>
+
+          {/* LEFT — Indicator spec */}
+          <div>
+            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14 }}>
+              <h2 style={{ fontFamily:F.display, fontSize:17, fontWeight:700 }}>Indicator Specification</h2>
+              <div style={{ flex:1 }} />
+              <button onClick={runDemo} style={{ fontSize:11, padding:"4px 12px", background:C.accent, color:"white", border:"none", borderRadius:6, cursor:"pointer", fontFamily:F.body, fontWeight:600 }}>See Demo ⚡</button>
+            </div>
+
+            {/* Import tabs */}
+            <div style={{ display:"flex", gap:6, marginBottom:14, borderBottom:`1px solid ${C.border}`, paddingBottom:10 }}>
+              {[["manual","Enter manually"],["json","Paste JSON from IQR"]].map(([v,l]) => (
+                <button key={v} onClick={() => { setInputMode(v); if (v !== "apg") setApgRow(null); }}
+                  style={{ ...btnOutline, fontSize:11, padding:"4px 12px", background:inputMode===v?C.accentLight:"transparent", borderColor:inputMode===v?C.accent:C.border, color:inputMode===v?C.accent:C.textMuted }}>
+                  {l}
+                </button>
+              ))}
+              {apgRow && (
+                <button onClick={() => setInputMode("apg")}
+                  style={{ ...btnOutline, fontSize:11, padding:"4px 12px", background:inputMode==="apg"?"#FDF5F0":"transparent", borderColor:inputMode==="apg"?"#C67B5C":C.border, color:inputMode==="apg"?"#B56A4A":C.textMuted }}>
+                  ← From APG
+                </button>
+              )}
+              <button onClick={loadExample} style={{ ...btnOutline, fontSize:11, padding:"4px 12px", marginLeft:"auto", color:C.textMuted }}>Load Example</button>
+            </div>
+
+            {/* APG row preview */}
+            {inputMode === "apg" && apgRow && (
+              <div style={{ ...cardStyle, padding:"14px 16px", background:"#FFFAF7", border:"1px solid #E8C4B4" }}>
+                <div style={{ fontFamily:F.mono, fontSize:10, color:"#B56A4A", letterSpacing:"0.06em", marginBottom:10 }}>FROM ANALYSIS PLAN GENERATOR</div>
+
+                {[
+                  ["Research Topic", apgRow.research_topic || apgRow.variables],
+                  ["Type", apgRow.row_type === "crosstab" ? "Cross-Tabulation" : "Analysis Plan Row"],
+                  ["Question(s)", apgRow.relevant_questions || apgRow.variables],
+                  ["Research Question", apgRow.research_question || apgRow.purpose],
+                  ["Indicator Link", apgRow.indicator_link],
+                  ["Visualization", apgRow.visualization],
+                  ["Disaggregation", apgRow.disaggregation],
+                  ["Use of Information", apgRow.use_of_information],
+                  ["Flags", apgRow.flags],
+                ].filter(([,v]) => v).map(([label, val]) => (
+                  <div key={label} style={{ display:"flex", gap:8, fontSize:12, marginBottom:8, alignItems:"flex-start" }}>
+                    <span style={{ color:"#9A8070", fontWeight:600, minWidth:110, flexShrink:0, fontFamily:F.mono, fontSize:10, paddingTop:2 }}>{label.toUpperCase()}</span>
+                    <span style={{ color:C.text, lineHeight:1.5 }}>{val}</span>
+                  </div>
+                ))}
+
+                <div style={{ marginTop:10, padding:"8px 10px", background:"#FDF5F0", borderRadius:4, fontSize:11, color:"#6B5549" }}>
+                  The generated script will implement the calculation <strong>and</strong> produce the chart specified above as a PNG export.
+                </div>
+              </div>
+            )}
+
+            {inputMode === "json" ? (
+              <div>
+                <p style={{ fontSize:12, color:C.textMuted, marginBottom:8 }}>
+                  In the Indicator Quality Reviewer, click <strong>Copy JSON</strong> on any indicator and paste it here.
+                </p>
+                <textarea
+                  value={jsonPaste}
+                  onChange={e => setJsonPaste(e.target.value)}
+                  placeholder={'{ "indicator": { "name": "...", "definition": "...", ... } }'}
+                  style={{ ...inputStyle, height:180, resize:"vertical", fontFamily:F.mono, fontSize:11 }}
+                />
+                {jsonError && <div style={{ fontSize:11, color:C.fail, marginTop:4 }}>{jsonError}</div>}
+                <button onClick={applyJsonPaste} disabled={!jsonPaste.trim()}
+                  style={{ ...btnPrimary, marginTop:8, opacity:!jsonPaste.trim()?0.5:1, fontSize:12, padding:"6px 14px" }}>
+                  Import Fields
+                </button>
+              </div>
+            ) : (
+              <div style={{ ...cardStyle, padding:"14px 16px", maxHeight:460, overflowY:"auto" }}>
+                <IndicatorEditor indicator={indicator} onChange={updateField} />
+              </div>
+            )}
+          </div>
+
+          {/* RIGHT — Data spec + options */}
+          <div>
+            <h2 style={{ fontFamily:F.display, fontSize:17, fontWeight:700, marginBottom:14 }}>Data & Options</h2>
+
+            {/* Data spec */}
+            <div style={{ marginBottom:16 }}>
+              <label style={{ display:"block", fontSize:11, fontWeight:600, color:C.textMuted, fontFamily:F.mono, letterSpacing:"0.04em", marginBottom:4 }}>DATA SPECIFICATION</label>
+              <p style={{ fontSize:11, color:C.textMuted, marginBottom:6, lineHeight:1.5 }}>
+                Paste column headers or a few sample rows from your dataset. Helps the AI use your actual variable names.
+              </p>
+              <textarea
+                value={dataSpec}
+                onChange={e => setDataSpec(e.target.value)}
+                placeholder={"survey_id  hh_id  sex_hoh  cereals_days  pulses_days  ...\n1001  HH001  Male  7  4  ..."}
+                style={{ ...inputStyle, height:100, resize:"vertical", fontFamily:F.mono, fontSize:11 }}
+              />
+            </div>
+
+            {/* Language */}
+            <div style={{ marginBottom:16 }}>
+              <label style={{ display:"block", fontSize:11, fontWeight:600, color:C.textMuted, fontFamily:F.mono, letterSpacing:"0.04em", marginBottom:6 }}>LANGUAGE</label>
+              <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+                {[["auto","Auto-detect"],["r","R"],["python","Python"]].map(([v,l]) => (
+                  <button key={v} onClick={() => setLangPref(v)}
+                    style={{ ...btnOutline, fontSize:11, padding:"5px 12px", background:langPref===v?C.accentLight:"transparent", borderColor:langPref===v?C.accent:C.border, color:langPref===v?C.accent:C.textMuted }}>
+                    {l}
+                  </button>
+                ))}
+              </div>
+              <p style={{ fontSize:11, color:C.textMuted, marginTop:5 }}>Auto-detect uses R by default. Python generates pandas/numpy code.</p>
+            </div>
+
+            {/* Additional context */}
+            <div style={{ marginBottom:20 }}>
+              <label style={{ display:"block", fontSize:11, fontWeight:600, color:C.textMuted, fontFamily:F.mono, letterSpacing:"0.04em", marginBottom:4 }}>ADDITIONAL CONTEXT</label>
+              <p style={{ fontSize:11, color:C.textMuted, marginBottom:6, lineHeight:1.5 }}>
+                Program-specific threshold overrides, sampling notes, or context the code must reflect.
+              </p>
+              <textarea
+                value={context}
+                onChange={e => setContext(e.target.value)}
+                placeholder={"e.g. Yemen-adapted FCS thresholds: Poor <28, Borderline 28-42, Acceptable >42\nUse survey-weighted analysis. Flag incomplete records where >2 food groups missing."}
+                style={{ ...inputStyle, height:90, resize:"vertical", fontFamily:F.mono, fontSize:11 }}
+              />
+            </div>
+
+            {error && (
+              <div style={{ padding:14, background:isRateLimit?"#FFF8F0":C.failBg, border:`1px solid ${isRateLimit?"#E8C4B4":C.failBorder}`, borderRadius:8, marginBottom:14, fontSize:12 }}>
+                {isRateLimit ? (
+                  <div>
+                    <div style={{ fontWeight:600, color:"#B56A4A", marginBottom:6 }}>⏱ Daily limit reached</div>
+                    <div style={{ color:"#6B5549", lineHeight:1.6 }}>{error}</div>
+                    <a href="https://github.com/BelltawnB/mel-tools-api" target="_blank"
+                       style={{ display:"inline-block", marginTop:10, color:"#C67B5C", fontWeight:500, textDecoration:"underline" }}>
+                      Download the code on GitHub →
+                    </a>
+                  </div>
+                ) : (
+                  <span style={{ color:C.fail }}>{error}</span>
+                )}
+              </div>
+            )}
+
+            <button
+              onClick={generate}
+              disabled={!hasIndicator}
+              style={{ ...btnPrimary, width:"100%", opacity:!hasIndicator?0.5:1, fontSize:14, padding:"10px 0", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
+              {apgRow ? "Generate Analysis + Visualization Code →" : "Generate Analysis Code →"}
+            </button>
+            {!hasIndicator && <p style={{ fontSize:11, color:C.textMuted, marginTop:6, textAlign:"center" }}>Enter an indicator name to enable generation</p>}
+
+            {/* APG cross-link */}
+            <div style={{ marginTop:14, padding:"10px 14px", background:"#FDF5F0", borderRadius:6, border:"1px solid #E8C4B4", display:"flex", alignItems:"center", gap:10 }}>
+              <span style={{ fontSize:16 }}>📋</span>
+              <div style={{ flex:1 }}>
+                <span style={{ fontSize:12, color:"#6B5549", lineHeight:1.5 }}>
+                  Need a <strong style={{ color:"#B56A4A" }}>logframe with indicator mappings</strong>?{" "}
+                  <a href="https://belltawnb.github.io/tools/analysis-plan-generator.html" target="_blank"
+                     style={{ color:"#C67B5C", fontWeight:600, textDecoration:"underline" }}>
+                    Try the Analysis Plan Generator →
+                  </a>
+                </span>
+                <div style={{ fontSize:10, color:"#9A8070", marginTop:2 }}>
+                  Produces a structured analysis plan. Use "Send to Code Generator" on any indicator row to pre-fill this form.
+                </div>
+              </div>
+            </div>
+
+            <div style={{ marginTop:12, padding:14, background:C.surfaceAlt, borderRadius:6, border:`1px solid ${C.border}` }}>
+              <div style={{ fontFamily:F.mono, fontSize:10, color:C.textDim, letterSpacing:"0.04em", marginBottom:6 }}>WHAT THIS GENERATES</div>
+              <div style={{ fontSize:12, color:C.textMid, lineHeight:1.7 }}>
+                Production-ready R or Python with standard FCS/HHS/rCSI/HDDS/MUAC calculation logic, data validation, weighted analysis, disaggregation loops, and CSV export. Threshold overrides are applied from the context field — context-specific values are never hardcoded in the base model.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ GENERATING ═══ */}
+      {view === VIEWS.GENERATING && (
+        <div style={{ maxWidth:600, margin:"80px auto", padding:"40px 24px", textAlign:"center" }}>
+          <div style={{ display:"inline-block", width:28, height:28, border:`3px solid ${C.border}`, borderTopColor:C.accent, borderRadius:"50%", animation:"acg-spin 0.8s linear infinite", marginBottom:16 }} />
+          <div style={{ fontFamily:F.mono, fontSize:13, color:C.textMuted }}>{genStatus}</div>
+          <div style={{ fontSize:11, color:C.textDim, marginTop:8 }}>This may take 20–40 seconds for complex indicators.</div>
+        </div>
+      )}
+
+      {/* ═══ RESULT ═══ */}
+      {view === VIEWS.RESULT && result && (
+        <div style={{ maxWidth:980, margin:"0 auto", padding:"24px" }}>
+
+          {/* Result header */}
+          <div style={{ ...cardStyle, display:"flex", alignItems:"flex-start", gap:16, marginBottom:16 }}>
+            <div style={{ flex:1 }}>
+              <div style={{ fontFamily:F.mono, fontSize:10, color:C.pass, letterSpacing:"0.06em", marginBottom:4 }}>CODE GENERATED</div>
+              <h2 style={{ fontFamily:F.display, fontSize:17, fontWeight:700, marginBottom:4 }}>{result.indicator_name || indicator.name}</h2>
+              <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginTop:6 }}>
+                {result.language && (
+                  <span style={{ fontFamily:F.mono, fontSize:11, padding:"2px 8px", borderRadius:4, background:C.accentLight, color:C.accent, border:`1px solid ${C.border}` }}>
+                    {result.language.toUpperCase()}
+                  </span>
+                )}
+                {result.methodology && (
+                  <span style={{ fontFamily:F.mono, fontSize:11, padding:"2px 8px", borderRadius:4, background:"#FDF8EE", color:C.warn, border:`1px solid ${C.warnBorder}` }}>
+                    {result.methodology}
+                  </span>
+                )}
+              </div>
+              {result.outputs && result.outputs.length > 0 && (
+                <div style={{ marginTop:10 }}>
+                  <div style={{ fontFamily:F.mono, fontSize:10, color:C.textDim, letterSpacing:"0.05em", marginBottom:4 }}>OUTPUTS THIS SCRIPT PRODUCES</div>
+                  <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+                    {result.outputs.map((o, i) => (
+                      <span key={i} style={{ fontFamily:F.mono, fontSize:11, padding:"2px 8px", borderRadius:4, background:C.surfaceAlt, color:C.textMid, border:`1px solid ${C.border}` }}>
+                        {o.includes(".png") ? "🖼 " : o.includes(".csv") ? "📄 " : "📁 "}{o}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div style={{ display:"flex", gap:6 }}>
+              <button onClick={downloadFile} style={{ ...btnOutline, fontSize:11, padding:"5px 12px" }}>
+                ⬇ Download .{result.language === "python" ? "py" : "R"}
+              </button>
+              <button onClick={downloadExcel} style={{ ...btnPrimary, fontSize:11, padding:"5px 14px" }}>
+                ⬇ Excel
+              </button>
+            </div>
+          </div>
+
+          {/* Code block */}
+          <div style={{ marginBottom:16 }}>
+            <CodeBlock code={result.code || ""} language={result.language} />
+          </div>
+
+          {/* Notes & assumptions */}
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
+            {result.notes && result.notes.length > 0 && (
+              <div style={{ ...cardStyle, marginBottom:0 }}>
+                <div style={{ fontFamily:F.mono, fontSize:10, color:C.textDim, letterSpacing:"0.05em", marginBottom:10 }}>METHODOLOGICAL NOTES</div>
+                <ul style={{ listStyle:"none", padding:0 }}>
+                  {result.notes.map((n, i) => (
+                    <li key={i} style={{ display:"flex", gap:8, fontSize:12, color:C.textMid, lineHeight:1.6, marginBottom:8 }}>
+                      <span style={{ color:C.warn, fontWeight:600, flexShrink:0, marginTop:1 }}>!</span>
+                      <span>{n}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {result.assumptions && result.assumptions.length > 0 && (
+              <div style={{ ...cardStyle, marginBottom:0 }}>
+                <div style={{ fontFamily:F.mono, fontSize:10, color:C.textDim, letterSpacing:"0.05em", marginBottom:10 }}>ASSUMPTIONS</div>
+                <ul style={{ listStyle:"none", padding:0 }}>
+                  {result.assumptions.map((a, i) => (
+                    <li key={i} style={{ display:"flex", gap:8, fontSize:12, color:C.textMid, lineHeight:1.6, marginBottom:8 }}>
+                      <span style={{ color:C.info, fontWeight:600, flexShrink:0, marginTop:1 }}>i</span>
+                      <span>{a}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          <div style={{ marginTop:14, padding:"10px 14px", background:C.surfaceAlt, borderRadius:6, fontSize:11, color:C.textMuted, lineHeight:1.6, border:`1px solid ${C.border}` }}>
+            ⚠ Always verify column names match your dataset before running. Threshold values and weights should be validated against your program's SOP and any donor-specific guidance.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('app')).render(
+  React.createElement(AnalysisCodeGenerator)
+);
+</script>
+</body>
+</html>
