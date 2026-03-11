@@ -9,10 +9,9 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&family=IBM+Plex+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
-  --terra: #C67B5C;
-  --cream: #FFF9F4;
-  --ink: #2A2220;
-  --ink-soft: #6B5D57;
+  --terra: #C67B5C; --terra-deep: #B56A4A; --terra-light: #E8C4B4;
+  --terra-glow: #FDF5F0; --cream: #FFF9F4; --bark: #3D2B22;
+  --ink: #2A2220; --ink-soft: #6B5D57; --sage: #7A9E87; --sage-light: #EDF4EF;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
 body { font-family: 'Outfit', sans-serif; background: #FAFAF7; color: #2D2D2D; overflow-x: hidden; }
@@ -53,7 +52,7 @@ body { font-family: 'Outfit', sans-serif; background: #FAFAF7; color: #2D2D2D; o
 .nav-links a:hover { color: var(--ink); }
 .nav-links a:hover::after { width: 100%; }
 .nav-links .current { color: var(--terra); font-weight: 500; }
-#app { margin-top: 64px; min-height: calc(100vh - 64px); }
+#app { margin-top: 96px; min-height: calc(100vh - 96px); }
 @keyframes iqr-spin { to { transform: rotate(360deg); } }
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-thumb { background: #E8E8E0; border-radius: 3px; }
@@ -92,24 +91,39 @@ body { font-family: 'Outfit', sans-serif; background: #FAFAF7; color: #2D2D2D; o
     <li><a href="https://belltawnb.github.io/#contact">Contact</a></li>
   </ul>
 </nav>
+<div style="background:#FDF5F0; border-bottom:1px solid #E8C4B4; padding:8px 24px; font-size:11px; color:#6B5549;">
+  🔒 This tool runs on a shared API — a daily usage limit applies.
+  Want unlimited access?
+  <a href="https://github.com/BelltawnB/mel-tools-api" target="_blank"
+     style="color:#C67B5C; font-weight:500; text-decoration:underline;">
+    Download the code on GitHub
+  </a>
+  and use your own Anthropic API key.
+</div>
 <div id="app"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
-<script type="text/babel" data-type="module">
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<script type="text/babel">
 const { useState, useCallback, useRef, useEffect, Fragment } = React;
 
 // ── Proxy config ─────────────────────────────────────────────────────────────
-const PROXY_URL = "https://mel-tools-api.netlify.app/api/proxy";
+const PROXY_URL = "https://mel-tools-api.burgen-b.workers.dev";
 const TOOL_NAME = "indicator-quality-reviewer";
 
 // Wraps fetch to proxy, handles rate limit / spend cap responses
 async function callProxy(body) {
-  const res = await fetch(PROXY_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...body, _tool: TOOL_NAME })
-  });
+  let res;
+  try {
+    res = await fetch(PROXY_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...body, _tool: TOOL_NAME })
+    });
+  } catch(e) {
+    throw new Error("Could not reach the API. Check your internet connection and try again. (Network error: " + e.message + ")");
+  }
   if (res.status === 429) {
     const j = await res.json();
     throw new RateLimitError(j.message || "Daily limit reached. Try again in 24 hours, or download the code from GitHub to use your own API key.");
@@ -143,7 +157,6 @@ const F = {
   body: "'DM Sans', sans-serif",
   mono: "'IBM Plex Mono', monospace",
 };
-const FONT_URL = "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap";
 
 const STATUS = {
   pass: { color: C.pass, bg: C.passBg, border: C.passBorder, icon: "✓" },
@@ -158,6 +171,14 @@ Outcome\tPercentage of beneficiaries with improved knowledge and food security p
 Outcome\tPercentage of households with moderate or severe hunger on the Household Hunger Scale\tHHS determined per standard methodology\t%\tNumber of HH in each HHS category\tTotal HH surveyed\t45% moderate, 12% severe\t30% moderate, 8% severe\tSex of HoH, Location\tBaseline/endline survey\tBaseline/endline\tIn the past 4 weeks, was there ever no food to eat of any kind in your household?\tYes/No + frequency\tWeighted frequency by HHS category
 Output\tNumber of trainings conducted on nutrition practices\tCount of nutrition training sessions delivered by program staff\t#\tTotal trainings conducted\t\t0\t48\t\tActivity tracker\tMonthly\t\t\t
 Outcome\tMean reduced Coping Strategy Index score\tAverage rCSI score among surveyed households\tAverage\t\t\t18.4\t12.0\tSex of HoH, Displacement status\tPDM survey\tQuarterly\tIn the past 7 days, how many days did your household have to: rely on less preferred foods, borrow food, reduce number of meals, reduce portion size, restrict adult consumption\tFrequency 0-7 for each\tWeighted sum per standard rCSI methodology`;
+
+// ─── DEMO DATA (pre-parsed from EXAMPLE_LOGFRAME — no API call) ─────────────
+const DEMO_INDICATORS = [
+  {"id":"O1.1","name":"Percentage of beneficiaries with improved knowledge and food security practices","definition":"Improved food security knowledge and practices among program participants","resultsLevel":"Outcome","unit":"%","numerator":"Number of beneficiaries with improved knowledge and practices","denominator":null,"baseline":null,"target":"80%","disaggregations":"Sex","frequency":null,"meansOfVerification":"Post-distribution monitoring survey","surveyQuestions":"How would you rate your food security knowledge? 1-Very good 2-Good 3-Average 4-Poor","responseOptions":"Likert scale 1-4","analysisMethod":null,"indicatorType":"custom","audience":null},
+  {"id":"O1.2","name":"Percentage of households with moderate or severe hunger on the Household Hunger Scale","definition":"HHS determined per standard methodology","resultsLevel":"Outcome","unit":"%","numerator":"Number of HH in each HHS category","denominator":"Total HH surveyed","baseline":"45% moderate, 12% severe","target":"30% moderate, 8% severe","disaggregations":"Sex of HoH, Location","frequency":"Baseline/endline","meansOfVerification":"Baseline/endline survey","surveyQuestions":"In the past 4 weeks, was there ever no food to eat of any kind in your household?","responseOptions":"Yes/No + frequency","analysisMethod":"Weighted frequency by HHS category","indicatorType":"standard","audience":null},
+  {"id":"OP1.1","name":"Number of trainings conducted on nutrition practices","definition":"Count of nutrition training sessions delivered by program staff","resultsLevel":"Output","unit":"#","numerator":"Total trainings conducted","denominator":null,"baseline":"0","target":"48","disaggregations":null,"frequency":"Monthly","meansOfVerification":"Activity tracker","surveyQuestions":null,"responseOptions":null,"analysisMethod":null,"indicatorType":"custom","audience":null},
+  {"id":"O1.3","name":"Mean reduced Coping Strategy Index score","definition":"Average rCSI score among surveyed households","resultsLevel":"Outcome","unit":"Average","numerator":null,"denominator":null,"baseline":"18.4","target":"12.0","disaggregations":"Sex of HoH, Displacement status","frequency":"Quarterly","meansOfVerification":"PDM survey","surveyQuestions":"In the past 7 days, how many days did your household have to: rely on less preferred foods, borrow food, reduce number of meals, reduce portion size, restrict adult consumption","responseOptions":"Frequency 0-7 for each","analysisMethod":"Weighted sum per standard rCSI methodology","indicatorType":"standard","audience":null}
+];
 
 // ─── RULES ENGINE ────────────────────────────────────────────────────────────
 const VAGUE = ["improved","strengthened","enhanced","increased","better","effective","appropriate","adequate","sufficient"];
@@ -641,7 +662,25 @@ function IndicatorQualityReviewer() {
     reader.readAsText(file);
   };
 
-  const loadExample = () => { setRawInput(EXAMPLE_LOGFRAME); setInputType("paste-table"); };
+  const runDemo = () => {
+    setRawInput(EXAMPLE_LOGFRAME);
+    setInputType("paste-table");
+    const cmap = {};
+    DEMO_INDICATORS.forEach((ind, i) => { cmap[i] = runChecks(ind); });
+    setIndicators(DEMO_INDICATORS);
+    setChecksMap(cmap);
+    setView(VIEWS.TABLE);
+  };
+
+  // Input limit: count meaningful indicator rows
+  const countIndicatorRows = (text) => {
+    if (!text.trim()) return 0;
+    const lines = text.trim().split("\n");
+    if (lines.length < 2) return 0;
+    return lines.length - 1; // subtract header
+  };
+  const rowCount = countIndicatorRows(rawInput);
+  const overLimit = rowCount > 50;
 
   const selectIndicator = (idx) => { setSelectedIdx(idx); setView(VIEWS.REVIEW); };
 
@@ -677,6 +716,67 @@ function IndicatorQualityReviewer() {
     navigator.clipboard.writeText(JSON.stringify({ indicator: indicators[selectedIdx] }, null, 2)); flash("JSON copied!");
   };
 
+  const downloadExcel = () => {
+    if (!indicators.length) return;
+    const wb = XLSX.utils.book_new();
+    const safe = v => { if (v==null) return ""; const s=String(v); return /^[=+\-@]/.test(s)?" "+s:s; };
+    const FOREST="2D5016"; const BORDER={style:"thin",color:{rgb:"C0C0C0"}}; const BORDER_ALL={top:BORDER,bottom:BORDER,left:BORDER,right:BORDER};
+    const styleHeaders = (ws,ncols) => { for(let c=0;c<ncols;c++){const addr=XLSX.utils.encode_cell({r:0,c});if(!ws[addr])continue;ws[addr].s={font:{bold:true,color:{rgb:"FFFFFF"},name:"Cambria",sz:10},fill:{fgColor:{rgb:FOREST}},alignment:{wrapText:true,vertical:"center",horizontal:"center"},border:BORDER_ALL};} };
+    const styleData = (ws,nrows,ncols) => { for(let r=1;r<nrows;r++){const isEven=r%2===0;for(let c=0;c<ncols;c++){const addr=XLSX.utils.encode_cell({r,c});if(!ws[addr])ws[addr]={t:"s",v:""};const base={font:{name:"Calibri",sz:9,color:{rgb:"333333"}},alignment:{wrapText:true,vertical:"top"},border:BORDER_ALL};if(isEven)base.fill={fgColor:{rgb:"F7FAF4"}};ws[addr].s=base;}} };
+
+    // Sheet 1: Indicators
+    const indH=["ID","Indicator","Level","Unit","Definition","Numerator","Denominator","Baseline","Target","Disaggregation","Frequency","MOV","Survey Questions","Analysis Method"];
+    const indR=indicators.map(d=>[safe(d.id),safe(d.name),safe(d.resultsLevel),safe(d.unit),safe(d.definition),safe(d.numerator),safe(d.denominator),safe(d.baseline),safe(d.target),safe(d.disaggregations),safe(d.frequency),safe(d.meansOfVerification),safe(d.surveyQuestions),safe(d.analysisMethod)]);
+    const ws1=XLSX.utils.aoa_to_sheet([indH,...indR]);
+    ws1["!cols"]=[{wch:8},{wch:40},{wch:10},{wch:8},{wch:36},{wch:24},{wch:20},{wch:12},{wch:12},{wch:20},{wch:12},{wch:20},{wch:30},{wch:24}];
+    ws1["!rows"]=[{hpt:22},...indR.map(()=>({hpt:50}))];
+    ws1["!freeze"]={xSplit:0,ySplit:1};
+    styleHeaders(ws1,indH.length); styleData(ws1,indR.length+1,indH.length);
+    XLSX.utils.book_append_sheet(wb,ws1,"Indicators");
+
+    // Sheet 2: Quality Checks
+    const qcH=["ID","Indicator","Category","Check","Status","Detail"];
+    const qcR=[];
+    indicators.forEach((ind,i)=>{
+      (checksMap[i]||[]).forEach(c=>{
+        qcR.push([safe(ind.id),safe(ind.name),safe(c.cat),safe(c.label),safe(c.status),safe(c.msg)]);
+      });
+    });
+    const ws2=XLSX.utils.aoa_to_sheet([qcH,...qcR]);
+    ws2["!cols"]=[{wch:8},{wch:34},{wch:14},{wch:18},{wch:8},{wch:60}];
+    ws2["!rows"]=[{hpt:22},...qcR.map(()=>({hpt:40}))];
+    ws2["!freeze"]={xSplit:0,ySplit:1};
+    styleHeaders(ws2,qcH.length); styleData(ws2,qcR.length+1,qcH.length);
+    // Conditional formatting for status column (index 4)
+    for(let r=1;r<qcR.length+1;r++){
+      const addr=XLSX.utils.encode_cell({r,c:4});
+      if(!ws2[addr])continue;
+      const v=(ws2[addr].v||"").toLowerCase();
+      if(v==="fail"){ws2[addr].s={...ws2[addr].s,fill:{fgColor:{rgb:"FFF0F0"}},font:{...ws2[addr].s.font,bold:true,color:{rgb:"C62828"}}};}
+      else if(v==="warn"){ws2[addr].s={...ws2[addr].s,fill:{fgColor:{rgb:"FFF8E1"}},font:{...ws2[addr].s.font,color:{rgb:"E65100"}}};}
+    }
+    XLSX.utils.book_append_sheet(wb,ws2,"Quality Checks");
+
+    // Sheet 3: About
+    const aboutData=[
+      ["INDICATOR QUALITY REVIEW",""],["",""],
+      ["Consultant","Burgen Belltawn"],["Title","MEL Specialist"],
+      ["Email","belltawnb@gmail.com"],["Website","https://belltawnb.github.io"],["",""],
+      ["Tool","Indicator Quality Reviewer"],["Tool URL","https://belltawnb.github.io/tools/indicator-quality-reviewer.html"],
+      ["Generated",""+new Date().toLocaleDateString("en-GB",{year:"numeric",month:"long",day:"numeric"})],["",""],
+      ["Disclaimer","This report was generated using AI-assisted MEL system design."],
+      ["","All outputs should be reviewed by a qualified MEL professional before use in reporting."],
+      ["","Campbell's Law applies: indicators that become targets cease to be good measures."],
+    ];
+    const ws3=XLSX.utils.aoa_to_sheet(aboutData);
+    ws3["!cols"]=[{wch:16},{wch:72}];
+    if(ws3["A1"])ws3["A1"].s={font:{bold:true,sz:14,name:"Cambria",color:{rgb:FOREST}}};
+    ["A3","A4","A5","A6","A8","A9","A10","A12"].forEach(addr=>{if(ws3[addr])ws3[addr].s={font:{bold:true,name:"Calibri",sz:10,color:{rgb:FOREST}}};});
+    XLSX.utils.book_append_sheet(wb,ws3,"About");
+
+    XLSX.writeFile(wb,"Indicator_Quality_Review_Report.xlsx");
+  };
+
   const selectedInd = selectedIdx !== null ? indicators[selectedIdx] : null;
   const selectedChecks = selectedIdx !== null ? (checksMap[selectedIdx] || []) : [];
   const grouped = {};
@@ -693,7 +793,6 @@ function IndicatorQualityReviewer() {
   return (
     <div style={{ minHeight:"100vh", background:C.bg, fontFamily:F.body, color:C.text }}>
       <style>{`
-        @import url('${FONT_URL}');
         @keyframes iqr-spin { to { transform: rotate(360deg); } }
         input:focus, textarea:focus, select:focus { border-color: ${C.accent} !important; }
         ::-webkit-scrollbar { width: 5px; }
@@ -718,25 +817,9 @@ function IndicatorQualityReviewer() {
                 {l}
               </button>
             ))}
+            <button onClick={downloadExcel} style={{ ...btnPrimary, fontSize:11, padding:"5px 14px", marginLeft:4 }}>⬇ Excel</button>
           </div>
         )}
-      </div>
-
-      {/* NOTICE BANNER */}
-      <div style={{ background:"#FDF5F0", borderBottom:"1px solid #E8C4B4", padding:"8px 24px", display:"flex", alignItems:"center", gap:12, flexWrap:"wrap" }}>
-        <span style={{ fontSize:11, color:"#6B5549", lineHeight:1.5 }}>
-          🔒 This tool runs on a shared API — a daily usage limit applies.
-          Want unlimited access?{" "}
-          <a href="https://github.com/BelltawnB/mel-tools-api" target="_blank"
-             style={{ color:"#C67B5C", fontWeight:500, textDecoration:"underline" }}>
-            Download the code on GitHub
-          </a>{" "}
-          and use your own Anthropic API key.{" "}
-          <span style={{ color:"#9B8880" }}>·</span>{" "}
-          <span style={{ color:"#9B8880" }}>
-            Privacy: text you enter is sent to Anthropic's API for processing and is not stored by this site. Usage metadata (request count, token volume, masked IP) is logged for 25 hours to enforce daily limits.
-          </span>
-        </span>
       </div>
 
       {/* ═══ INGEST ═══ */}
@@ -745,7 +828,7 @@ function IndicatorQualityReviewer() {
           <h2 style={{ fontFamily:F.display, fontSize:20, fontWeight:700, marginBottom:4 }}>Paste or upload your logframe</h2>
           <p style={{ fontSize:13, color:C.textMuted, marginBottom:20 }}>AI extracts indicators and auto-maps fields. You correct any mismatches before review.</p>
 
-          <div style={{ display:"flex", gap:8, marginBottom:12, flexWrap:"wrap" }}>
+          <div style={{ display:"flex", gap:8, marginBottom:12, flexWrap:"wrap", alignItems:"center" }}>
             {[["paste-table","Paste table"],["paste-text","Paste text"],["csv","Upload CSV"]].map(([v,l])=>(
               <button key={v} onClick={()=>{ setInputType(v); if(v==="csv") fileRef.current?.click(); }}
                 style={{ ...btnOutline, fontSize:11, padding:"5px 12px", background:inputType===v?C.accentLight:"transparent", borderColor:inputType===v?C.accent:C.border, color:inputType===v?C.accent:C.textMuted }}>
@@ -753,21 +836,28 @@ function IndicatorQualityReviewer() {
               </button>
             ))}
             <div style={{ flex:1 }} />
-            <button onClick={loadExample} style={{ ...btnOutline, fontSize:11, padding:"5px 12px", color:C.textMuted }}>Load Flawed Example</button>
+            {rowCount > 0 && (
+              <span style={{ fontFamily:F.mono, fontSize:11, color:overLimit?C.fail:C.pass }}>
+                {rowCount} row{rowCount!==1?"s":""} {overLimit?"— over 50 limit":"detected"}
+              </span>
+            )}
+            <button onClick={runDemo} style={{ fontSize:11, padding:"4px 14px", background:C.accent, color:"white", border:"none", borderRadius:6, cursor:"pointer", fontFamily:F.body, fontWeight:600 }}>See Demo ⚡</button>
           </div>
 
           <input ref={fileRef} type="file" accept=".csv,.tsv,.txt" style={{ display:"none" }} onChange={handleFile} />
 
           <textarea value={rawInput} onChange={e=>setRawInput(e.target.value)}
             placeholder={inputType==="paste-table" ? "Paste from Excel or Google Sheets (tab-separated)…\n\nHeaders in first row, one indicator per row." : inputType==="paste-text" ? "Paste logframe text from a proposal or document…\n\nThe AI will find and extract indicators." : "CSV content loaded, or paste here…"}
-            style={{ ...inputStyle, height:200, resize:"vertical", fontFamily:F.mono, fontSize:12, lineHeight:1.5 }}
+            style={{ ...inputStyle, height:200, resize:"vertical", fontFamily:F.mono, fontSize:12, lineHeight:1.5, borderColor:overLimit?C.fail:C.border }}
           />
+
+          {overLimit && <div style={{ marginTop:4, fontSize:11, color:C.fail, fontFamily:F.mono }}>⚠ {rowCount} rows detected — trim to 50 indicators before extracting.</div>}
 
           {parseError && <div style={{ marginTop:8, padding:10, background:C.failBg, border:`1px solid ${C.failBorder}`, borderRadius:6, fontSize:12, color:C.fail }}>{parseError}</div>}
 
           <div style={{ marginTop:14 }}>
-            <button onClick={()=>parseLogframe(rawInput)} disabled={!rawInput.trim()||parsing}
-              style={{ ...btnPrimary, opacity:(!rawInput.trim()||parsing)?0.5:1, display:"inline-flex", alignItems:"center", gap:8 }}>
+            <button onClick={()=>parseLogframe(rawInput)} disabled={!rawInput.trim()||parsing||overLimit}
+              style={{ ...btnPrimary, opacity:(!rawInput.trim()||parsing||overLimit)?0.5:1, display:"inline-flex", alignItems:"center", gap:8 }}>
               {parsing && <span style={{ display:"inline-block", width:14, height:14, border:"2px solid rgba(255,255,255,0.3)", borderTopColor:"#fff", borderRadius:"50%", animation:"iqr-spin 0.8s linear infinite" }} />}
               {parsing ? "Extracting…" : "Extract Indicators"}
             </button>
@@ -776,7 +866,7 @@ function IndicatorQualityReviewer() {
           <div style={{ marginTop:24, padding:14, background:C.surfaceAlt, borderRadius:6, border:`1px solid ${C.border}` }}>
             <div style={{ fontFamily:F.mono, fontSize:10, color:C.textDim, letterSpacing:"0.04em", marginBottom:6 }}>SUPPORTED FORMATS</div>
             <div style={{ fontSize:12, color:C.textMid, lineHeight:1.6 }}>
-              Tab-separated (Excel/Sheets), comma-separated CSV, or unstructured proposal text. Headers don't need exact names — AI maps columns to fields and flags uncertainty.
+              Tab-separated (Excel/Sheets), comma-separated CSV, or unstructured proposal text. Headers don't need exact names — AI maps columns to fields and flags uncertainty. Maximum 50 indicators per submission — if you have more, run in batches.
             </div>
           </div>
         </div>
