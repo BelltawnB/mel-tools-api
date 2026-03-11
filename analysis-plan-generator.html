@@ -353,6 +353,37 @@ function App() {
 
   const flash = (msg) => { setCopyMsg(msg); setTimeout(()=>setCopyMsg(""),2000); };
 
+  const sendToACG = (row, rowType) => {
+    let matchedIndicator = null;
+    if (parsed?.indicators && row.indicator_link && !row.indicator_link.startsWith("Non-indicator")) {
+      matchedIndicator = parsed.indicators.find(ind =>
+        row.indicator_link && ind.name &&
+        (row.indicator_link.toLowerCase().includes(ind.name.toLowerCase().substring(0, 20)))
+      );
+    }
+    const payload = {
+      apg_row: {
+        row_type: rowType,
+        research_topic: row.research_topic || row.variables,
+        relevant_questions: row.relevant_questions || row.variables,
+        research_question: row.research_question || row.purpose,
+        indicator_link: row.indicator_link,
+        visualization: row.visualization,
+        disaggregation: row.disaggregation,
+        use_of_information: row.use_of_information,
+        flags: row.flags,
+        flag_type: row.flag_type,
+      },
+      indicator: matchedIndicator || null,
+      context: lfInput ? `Logframe context:\n${lfInput.substring(0, 500)}` : null,
+    };
+    const encoded = encodeURIComponent(JSON.stringify(payload));
+    window.open(
+      `https://belltawnb.github.io/tools/analysis-code-generator.html#indicator=${encoded}`,
+      '_blank'
+    );
+  };
+
   const downloadExcel = () => {
     if (!planData) return;
     const wb = XLSX.utils.book_new();
@@ -835,14 +866,14 @@ function App() {
             {activeTab==="plan" && <>
               <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12, background:C.surface }}>
                 <thead>
-                  <tr>{["Research Topic","Q#s","Research Question","Indicator Link","Visualization","Disaggregation","Use of Information","Flags"].map(h=>(
+                  <tr>{["Research Topic","Q#s","Research Question","Indicator Link","Visualization","Disaggregation","Use of Information","Flags","→ Code"].map(h=>(
                     <th key={h} style={{ padding:"9px 10px", textAlign:"left", fontFamily:C.mono, fontSize:8, letterSpacing:1.5, textTransform:"uppercase", color:"white", background:C.forest, whiteSpace:"nowrap" }}>{h}</th>
                   ))}</tr>
                 </thead>
                 <tbody>
                   {Object.entries(grouped).map(([section,rows])=>(
                     <React.Fragment key={section}>
-                      <tr className="sec-hdr"><td colSpan={8} style={{ padding:"7px 10px" }}><span style={{ fontFamily:C.mono, fontSize:8, letterSpacing:2, textTransform:"uppercase", color:C.forest, fontWeight:600 }}>{section}</span></td></tr>
+                      <tr className="sec-hdr"><td colSpan={9} style={{ padding:"7px 10px" }}><span style={{ fontFamily:C.mono, fontSize:8, letterSpacing:2, textTransform:"uppercase", color:C.forest, fontWeight:600 }}>{section}</span></td></tr>
                       {rows.map((row,ri)=>(
                         <tr key={ri} style={{ borderBottom:`1px solid ${C.border}`, background:ri%2===0?C.surface:C.surfaceAlt }}>
                           <td style={{ padding:"8px 10px", color:C.textMid, maxWidth:110, minWidth:80, verticalAlign:"top", fontWeight:500 }}>{row.research_topic}</td>
@@ -853,6 +884,9 @@ function App() {
                           <td style={{ padding:"8px 10px", color:C.textMuted, maxWidth:110, minWidth:90, verticalAlign:"top", fontSize:11, lineHeight:1.5 }}>{row.disaggregation}</td>
                           <td style={{ padding:"8px 10px", color:C.textMid, maxWidth:160, minWidth:120, verticalAlign:"top", lineHeight:1.5, wordBreak:"break-word" }}>{row.use_of_information}</td>
                           <td style={{ padding:"8px 10px", verticalAlign:"top", maxWidth:140, minWidth:100 }}><FlagBadge text={row.flags} type={row.flag_type} /></td>
+                          <td style={{ padding:"8px", borderBottom:`1px solid ${C.borderSubtle}`, whiteSpace:"nowrap", verticalAlign:"top" }}>
+                            <button onClick={()=>sendToACG(row,"plan")} style={{ ...btnOutline, fontSize:10, padding:"3px 10px", color:C.forest, borderColor:C.border }} title="Generate analysis + visualization code for this row">→ Code</button>
+                          </td>
                         </tr>
                       ))}
                     </React.Fragment>
@@ -927,7 +961,7 @@ function App() {
                 </div>
                 <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12, background:C.surface }}>
                   <thead><tr>
-                    {["Variables","Analytical Purpose","Source"].map(h=><th key={h} style={{ padding:"9px 12px", textAlign:"left", fontFamily:C.mono, fontSize:8, letterSpacing:1.5, textTransform:"uppercase", color:"white", background:C.forest }}>{h}</th>)}
+                    {["Variables","Analytical Purpose","Source","→ Code"].map(h=><th key={h} style={{ padding:"9px 12px", textAlign:"left", fontFamily:C.mono, fontSize:8, letterSpacing:1.5, textTransform:"uppercase", color:"white", background:C.forest }}>{h}</th>)}
                   </tr></thead>
                   <tbody>
                     {allCrosstabs.map((ct,i)=>(
@@ -942,6 +976,9 @@ function App() {
                               </div>
                             : <span style={{ background:C.surfaceAlt, border:`1px solid ${C.border}`, color:C.textMuted, borderRadius:3, padding:"1px 7px", fontSize:9, fontFamily:C.mono }}>Generated</span>
                           }
+                        </td>
+                        <td style={{ padding:"10px 12px", borderBottom:`1px solid ${C.borderSubtle}`, whiteSpace:"nowrap", verticalAlign:"top" }}>
+                          <button onClick={()=>sendToACG(ct,"crosstab")} style={{ ...btnOutline, fontSize:10, padding:"3px 10px", color:C.forest, borderColor:C.border }} title="Generate cross-tabulation code and visualization">→ Code</button>
                         </td>
                       </tr>
                     ))}
