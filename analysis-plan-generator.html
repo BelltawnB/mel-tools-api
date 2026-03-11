@@ -75,11 +75,12 @@ body { font-family:'Outfit',sans-serif; background:#FAFAF7; color:#2D2D2D; overf
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
-<script type="text/babel" data-type="module">
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<script type="text/babel">
 const { useState, useRef } = React;
 
 // ── Proxy ─────────────────────────────────────────────────────────────────────
-const PROXY_URL = "https://mel-tools-api.netlify.app/api/proxy";
+const PROXY_URL = "https://mel-tools-api.burgen-b.workers.dev";
 const TOOL_NAME = "analysis-plan-generator";
 
 async function callProxy(body) {
@@ -155,80 +156,117 @@ Outcome\tMean rCSI score\trCSI = less preferred×1 + borrow×2 + portions×1 + a
 Outcome\t% HHs with Acceptable food consumption\tFCS Acceptable ≥28 (standard thresholds). Formula: Cereals×2 + Pulses×3 + Veg×1 + Meat×4 + Dairy×4 + Sugar×0.5 + Oil×0.5.\t41%\t55%\tSex of HoH; Displacement status
 Outcome\t% reporting positive social cohesion\t3-item battery S9.1–S9.3. % selecting top-2 per question, averaged across items.\t38%\t52%\tSex of HoH; Displacement status; Governorate`;
 
+const DEMO_RESULT = {
+  "plan": [
+    {"section":"S2. Household Status","research_topic":"Displacement profile","relevant_questions":"hh_status","research_question":"Distribution of respondents by current status (IDP, Returnee, Host Community). Denominator: all respondents. Used to weight indicator results by displacement group.","indicator_link":"Non-indicator: Disaggregation variable for all indicators","visualization":"Pie chart x 3 categories; repeat by governorate (Delra, Velun, Saren)","disaggregation":"By governorate","use_of_information":"MEL coordinator confirms sample representativeness against program targeting records before indicator calculations","flags":null,"flag_type":null},
+    {"section":"S3. Safety","research_topic":"Settlement safety - Impact Indicator 1","relevant_questions":"safe_settle","research_question":"% HHs selecting 'Very safe' in safe_settle / total safe_settle respondents x 100. Threshold: top option only. Baseline 52%, target 70%.","indicator_link":"Impact Ind. 1: % HHs feeling very safe to settle - baseline 52%, target 70%","visualization":"Grouped bar (4-point scale) by sex of HoH and displacement status; headline = 'Very safe' % with 95% CI vs. baseline line","disaggregation":"By sex of HoH; by displacement status; by governorate","use_of_information":"Reported to donor at endline as primary impact indicator. Consortium MEL coordinator reviews disaggregated results to identify groups below target.","flags":"Flag if female-headed HHs report >10pp lower than male-headed - investigate unsafe_factors for gender-specific drivers","flag_type":"action"},
+    {"section":"S3. Safety","research_topic":"Drivers of safety concerns","relevant_questions":"unsafe_factors","research_question":"Among HHs reporting unsafe in safe_settle, what are the most common factors selected in unsafe_factors? Multi-select frequency analysis.","indicator_link":"Non-indicator: Informs Impact Ind. 1 interpretation","visualization":"Horizontal bar (% selecting each factor); filtered to unsafe respondents only","disaggregation":"By sex of HoH; by displacement status","use_of_information":"Protection focal point identifies specific safety drivers to inform referral pathways and advocacy","flags":"Protection flag: if 'Community discrimination' selected by >15% of IDP respondents - escalate to protection cluster","flag_type":"protection"},
+    {"section":"S4. Shelter","research_topic":"Housing adequacy","relevant_questions":"housing_type","research_question":"% of IDP and returnee HHs in inadequate housing (tent, unfinished, communal, or no shelter). Denominator: IDP and returnee HHs only.","indicator_link":"Non-indicator: Shelter adequacy context monitoring","visualization":"Grouped bar by housing type x displacement status; collapse to adequate/inadequate binary for summary","disaggregation":"By displacement status; by governorate","use_of_information":"Shelter sector officer estimates caseload for rehabilitation activities. Cross-reference against program beneficiary records.","flags":"Flag if >20% of IDP HHs remain in tent or communal shelter at endline - review shelter activity coverage","flag_type":"action"},
+    {"section":"S5. Income","research_topic":"Income sufficiency - Impact Indicator 2","relevant_questions":"income_sufficient","research_question":"% HHs selecting 'Sufficient' OR 'More than sufficient' in income_sufficient / total respondents x 100. Top-2 options combined. Baseline 18%, target 30%.","indicator_link":"Impact Ind. 2: % HHs with sufficient income - baseline 18%, target 30%","visualization":"Stacked bar (4-point) by sex of HoH and displacement status; headline = top-2 combined % vs. baseline with 95% CI","disaggregation":"By sex of HoH; by displacement status; by governorate","use_of_information":"Reported to donor at endline. Livelihoods officer cross-tabulates with activity type received to identify which interventions correlate with income improvement.","flags":"Analytical note: beneficiaries may underreport income sufficiency fearing reduced assistance. Triangulate against income_monthly and rCSI data.","flag_type":"note"},
+    {"section":"S6. Food Consumption","research_topic":"Food consumption score - Impact Ind. 3","relevant_questions":"fcs_cereals, fcs_pulses, fcs_veg, fcs_meat, fcs_dairy, fcs_sugar, fcs_oil","research_question":"FCS = Cereals x2 + Pulses x3 + Veg x1 + Meat x4 + Dairy x4 + Sugar x0.5 + Oil x0.5. Standard thresholds: Acceptable >=28, Borderline 21-27, Poor <=21. Prevalence of Acceptable FCS. Baseline 41%, target 55%.","indicator_link":"Impact Ind. 3 / Outcome: % HHs with Acceptable FCS - baseline 41%, target 55%","visualization":"Stacked bar (FCS category) by displacement status and sex of HoH; box plot of raw scores vs. baseline","disaggregation":"By sex of HoH; by displacement status; by governorate","use_of_information":"Reported at endline. FSL coordinator receives results for cluster reporting.","flags":"Analytical note: fruit food group absent from this form. FCS calculated using 7 groups not standard 8. Document this deviation in the analysis report.","flag_type":"note"},
+    {"section":"S7. Coping Strategies","research_topic":"rCSI score - Outcome","relevant_questions":"rcsi_less_pref, rcsi_borrow, rcsi_portions, rcsi_adults, rcsi_meals","research_question":"rCSI = less preferred x1 + borrow x2 + portions x1 + adults x3 + meals x1. Mean score per displacement group. Lower = better. Baseline 19, target 15.","indicator_link":"Outcome: Mean rCSI score - baseline 19, target 15","visualization":"Box plot by displacement status and sex of HoH; mean with 95% CI vs. baseline (19) and target (15)","disaggregation":"By sex of HoH; by displacement status; by governorate","use_of_information":"Reported at endline. MEL coordinator flags any increase above baseline as early warning of food security deterioration.","flags":"Analytical note: verify all-zero rCSI records - genuine non-use vs. missing data before calculating mean.","flag_type":"note"},
+    {"section":"S8. Documentation","research_topic":"Civil documentation gaps","relevant_questions":"missing_doc, doc_blocks_access","research_question":"% HHs reporting missing documents (missing_doc = yes) AND blocked access (doc_blocks_access = yes). This intersection defines the active referral population.","indicator_link":"Non-indicator: Protection - civil documentation caseload","visualization":"Two-bar chart: % missing doc; % of those where it blocks access. Cross-tab: missing x blocks access x displacement status","disaggregation":"By displacement status; by governorate","use_of_information":"Legal aid focal point estimates LCD caseload. Cross-tab defines priority referral population.","flags":"Protection flag: if >20% of IDP HHs report missing documents AND blocked access - legal aid team to open intake within 30 days","flag_type":"protection"},
+    {"section":"S9. Social Cohesion","research_topic":"Social cohesion battery - Outcome","relevant_questions":"idp_host_relations, community_trust, feel_accepted","research_question":"3-item battery. Method: calculate % selecting top-2 options per question separately, then average across all 3 items. Do NOT pool denominators. Baseline 38%, target 52%.","indicator_link":"Outcome: % reporting positive social cohesion - baseline 38%, target 52%","visualization":"Stacked bar for each of 3 items; summary bar of averaged top-2 % vs. baseline with 95% CI","disaggregation":"By sex of HoH; by displacement status; by governorate","use_of_information":"Reported to donor at endline. Program team identifies lowest-scoring items to prioritize community dialogue activities.","flags":"Analytical note: compute % top-2 per question first, then average. Do not pool. Flag if any item has <60% response rate.","flag_type":"note"},
+    {"section":"S9. Social Cohesion","research_topic":"Local authority engagement","relevant_questions":"authority_engagement","research_question":"% selecting top-2 options in authority_engagement (very involved / sometimes involved).","indicator_link":"Non-indicator: Governance engagement monitoring","visualization":"Bar (4-point scale) by displacement status; top-2 combined % vs. program expectation","disaggregation":"By displacement status; by governorate","use_of_information":"Program coordinator assesses visibility and reach of local authority engagement activities","flags":null,"flag_type":null}
+  ],
+  "cleaning": [
+    "Verify consent is present for all records before including in analysis. Remove non-consenting records.",
+    "Check hh_status has no missing values - this is the primary disaggregation variable for all indicators.",
+    "Validate FCS inputs: fcs_cereals through fcs_oil must be integers 0-7. Recode out-of-range values as missing before calculating FCS.",
+    "Verify rCSI inputs: rcsi_less_pref through rcsi_meals must be 0-7. Review all-zero records for genuine non-use vs. missing data.",
+    "Check for duplicate household IDs. Flag and investigate before including duplicates in analysis.",
+    "Review income_monthly for outliers: flag records >3 SD from governorate mean. Do not exclude without review.",
+    "Verify doc_blocks_access only has values where missing_doc = yes. Flag routing violations.",
+    "Check unsafe_factors is only populated for HHs reporting unsafe in safe_settle. Flag routing violations.",
+    "Verify governorate values match the three expected values (Delra, Velun, Saren). Recode any variants.",
+    "Document the missing fruit food group in FCS calculation. Add a footnote to all FCS outputs noting the 7-group deviation."
+  ],
+  "crosstabs": [
+    {"variables":"safe_settle x hh_status x sex of HoH","purpose":"Core disaggregation for Impact Ind. 1 - identify whether displacement status or gender gap is driving below-target results"},
+    {"variables":"income_sufficient x hh_status","purpose":"Attribute income improvement by displacement group for Impact Ind. 2"},
+    {"variables":"FCS category x rCSI score","purpose":"Triangulate food security - HHs with Poor FCS AND high rCSI are most food insecure; validates internal consistency"},
+    {"variables":"missing_doc x doc_blocks_access x hh_status","purpose":"Define active LCD referral population - IDP HHs with both = yes are priority caseload"},
+    {"variables":"idp_host_relations x feel_accepted x hh_status","purpose":"Test whether IDP self-reported acceptance aligns with perceived relations - divergence signals social desirability bias"},
+    {"variables":"safe_settle x unsafe_factors","purpose":"Confirm which safety factors drive low scores - essential for Impact Ind. 1 interpretation"}
+  ],
+  "gaps": [
+    {"severity":"critical","indicator":"FCS - standard 8-group formula","issue":"Fruit food group absent from this form","detail":"Standard FCS uses 8 food groups including fruit (weight x1). This form has 7 groups. The calculated FCS will be systematically lower than a full 8-group calculation.","action":"Document deviation in analysis report. Confirm whether baseline also used 7 groups before comparing."},
+    {"severity":"warning","indicator":"Outcome: % reporting positive social cohesion","issue":"3-item battery is below recommended minimum for cohesion measurement","detail":"Standard cohesion scales use 5-12 items for reliability. Results from a 3-item battery should be interpreted with caution.","action":"Flag in the analysis report that the cohesion measure has limited psychometric reliability."},
+    {"severity":"warning","indicator":"Impact Ind. 2: % HHs with sufficient income","issue":"No activity type variable in this form","detail":"The logframe disaggregation for Impact Ind. 2 includes activity type received but there is no such question in this form. Cross-tabulation by activity type is not possible from this survey alone.","action":"Cross-reference with program beneficiary database to link HHs to activity type."},
+    {"severity":"info","indicator":"General","issue":"No household roster or demographic composition questions","detail":"This form captures hh_status but not HH size or vulnerability markers. Per-capita calculations are not possible.","action":"Optional enhancement for future rounds. Not a logframe gap for the current indicator set."}
+  ]
+};
+
 // ── Prompt builders ───────────────────────────────────────────────────────────
-function buildParsePrompt(xlsform, logframe) {
-  return `You are a senior MEL data specialist. Parse the following XLSForm survey sheet and logframe to extract structured data for analysis planning.
+function buildPlanPrompt(xlsform, logframe) {
+  return `You are a senior MEL specialist. Generate an analysis plan from the XLSForm and logframe below.
 
 XLSFORM SURVEY SHEET (tab-separated):
 ${xlsform}
 
-LOGFRAME (tab-separated):
+LOGFRAME:
 ${logframe || "No logframe provided."}
 
-Extract and return a JSON object with exactly these two keys:
-
-1. "questions": array of up to 50 question objects, each with:
-   - name: variable name (from 'name' column)
-   - label: English label (from 'label::English' or 'label' column)
-   - type: question type (select_one, select_multiple, integer, text, calculate, etc.)
-   - section: infer section code from label prefix (e.g. "S5", "S6", "S11") or group context
-   - section_label: full section name (e.g. "Household Status", "Shelter")
-   Skip: begin_group, end_group, begin_repeat, end_repeat, note, calculate rows
-
-2. "indicators": array of logframe indicator objects, each with:
-   - level: results level (Impact/Outcome/Output/Activity)
-   - name: indicator name
-   - definition: full definition including calculation method
-   - baseline: baseline value
-   - target: target value
-   - disaggregation: disaggregation categories
-   - source_questions: array of variable names from the XLSForm that feed this indicator (match carefully)
-   - threshold: specific threshold if applicable (e.g. "'Very safe' only", "top-2 options combined")
-   - notes: any critical methodological notes (e.g. Yemen-specific FCS thresholds, normalization method)
-
-CRITICAL JSON RULES: Return ONLY a valid JSON object. No markdown, no backticks, no explanation. All strings on one line (no literal newlines). Use null for missing values.`;
-}
-
-function buildAnalysisPlanPrompt(parsedData) {
-  return `You are a senior MEL specialist generating a structured analysis plan for a humanitarian final assessment.
-
-PARSED FORM DATA:
-${JSON.stringify(parsedData, null, 2)}
-
-Generate a comprehensive analysis plan. Return a JSON object with exactly these keys:
-
-"plan": array of analysis rows. Each row covers one research topic and has:
-- section: section code and name (e.g. "S11. Shelter")
-- research_topic: short topic label (e.g. "Settlement safety — Impact Indicator 1")
-- relevant_questions: variable name(s) or label references
-- research_question: the specific analytical question this row answers, including calculation method for indicator rows (numerator/denominator/threshold)
-- indicator_link: either "Impact Ind. X: [name] — baseline X%, target Y%" OR "Outcome X.X: [name]" OR "Non-indicator: [purpose]"
-- visualization: specific chart type and what axes/breakdowns to show
+Return a JSON object with ONE key: "plan" — array of analysis rows, one per form section or research topic. Each row:
+- section: section code and name (e.g. "S3. Safety")
+- research_topic: short label
+- relevant_questions: variable name(s) from the form
+- research_question: specific analytical question including calculation method for indicator rows (numerator/denominator/threshold)
+- indicator_link: "Impact Ind. X: [name] - baseline X%, target Y%" OR "Outcome X.X: [name]" OR "Non-indicator: [purpose]"
+- visualization: specific chart type and breakdowns
 - disaggregation: explicit disaggregation variables
-- use_of_information: who uses this, what decision/action it informs, by when
-- flags: specific action threshold if applicable (e.g. "Flag if >20% report X — escalate to Y"), OR analytical note (prefix with "Analytical note:"), OR protection flag (prefix with "Protection flag:"), OR null
+- use_of_information: who uses this and what decision it informs
+- flags: action threshold, analytical note (prefix "Analytical note:"), protection flag (prefix "Protection flag:"), or null
 - flag_type: "protection", "action", "note", or null
 
-"cleaning": array of data quality checks specific to this form (10-12 items). Each is a string describing a specific check with variable names.
+RULES: Map each logframe indicator to form questions. Indicator rows must include exact calculation method. Protection flags must name a focal point. For FCS note weights and thresholds. For cohesion batteries note normalized-average method. Return ONLY valid JSON. No markdown, no preamble.`;
+}
 
-"crosstabs": array of recommended cross-tabulations, each with:
-- variables: variable names and labels
-- purpose: why this cross-tab matters for indicator interpretation or protection monitoring
+function buildSupportingPrompt(xlsform, logframe, planRows) {
+  const vars = [...new Set(planRows.flatMap(r=>{ const q=r.relevant_questions; if(Array.isArray(q)) return q; return (q||"").split(/[,\s]+/).filter(Boolean); }))].join(", ");
+  const indicators = planRows.filter(r=>r.indicator_link&&!r.indicator_link.startsWith("Non-indicator")).map(r=>r.indicator_link).join("; ");
+  return `You are a senior MEL specialist. Generate three supporting outputs for an analysis plan.
 
-"gaps": array of coverage gaps between logframe and form, each with:
-- severity: "critical", "warning", or "info"
-- indicator: indicator name or issue title
-- issue: one-line summary of the gap
-- detail: explanation
-- action: concrete action required
+FORM VARIABLES: ${vars}
 
-RULES:
-- Indicator rows must include exact calculation method (formula, threshold, denominator)
-- Protection flags must name the referring agency/cluster
-- Use actual variable names from the parsed data
-- For FCS: always note Yemen-specific thresholds if present in logframe
-- For social cohesion: always note normalized-average method if present
-- Return ONLY valid JSON. No markdown, no backticks, no preamble.`;
+LOGFRAME: ${logframe||"No logframe provided."}
+
+INDICATOR LINKS: ${indicators}
+
+Return a JSON object with exactly these three keys:
+
+"cleaning": array of 8 data quality check strings, each naming specific variables from the form.
+
+"crosstabs": array of 6 objects, each with "variables" (variable names) and "purpose" (why this cross-tab matters for indicator interpretation).
+
+"gaps": array of coverage gaps, each with "severity" (critical/warning/info), "indicator", "issue" (one line), "detail", and "action".
+
+Return ONLY valid JSON. No markdown, no preamble.`;
+}
+
+// ── Tab-specific re-run prompt ───────────────────────────────────────────────
+function buildTabPrompt(tab, xlsform, logframe, existing) {
+  const ctx = `XLSForm (tab-separated):
+${xlsform}
+
+Logframe:
+${logframe||"None provided."}
+
+Existing analysis plan rows:
+${JSON.stringify((existing?.plan||[]).map(r=>({section:r.section,research_topic:r.research_topic,relevant_questions:r.relevant_questions})))}`; 
+  if (tab==="cleaning") return `${ctx}
+
+Generate 8-10 data quality checks specific to this form. Return JSON: {"cleaning":["check 1","check 2",...]}. Each check is a string with specific variable names. No markdown, no preamble.`;
+  if (tab==="crosstabs") return `${ctx}
+
+Generate 6-8 recommended cross-tabulations for indicator interpretation and protection monitoring. Return JSON: {"crosstabs":[{"variables":"...","purpose":"..."},...]}. No markdown, no preamble.`;
+  if (tab==="protection") return `${ctx}
+
+Review the existing analysis plan rows and regenerate ONLY the rows that should have protection flags. Return JSON: {"plan":[...rows with flag_type \"protection\" only...]}. Each row must have: section, research_topic, relevant_questions, research_question, indicator_link, visualization, disaggregation, use_of_information, flags (must start with \"Protection flag:\"), flag_type: \"protection\". No markdown, no preamble.`;
+  if (tab==="gaps") return `${ctx}
+
+Identify coverage gaps between the logframe and the form. Return JSON: {"gaps":[{"severity":"critical|warning|info","indicator":"...","issue":"...","detail":"...","action":"..."},...]}. No markdown, no preamble.`;
+  return "";
 }
 
 // ── TSV parser ────────────────────────────────────────────────────────────────
@@ -255,7 +293,7 @@ function App() {
   const [activeTab, setActiveTab] = useState("plan");
   const [parsed, setParsed] = useState(null);
   const [planData, setPlanData] = useState(null);
-  const [step, setStep] = useState(null); // null | "parsing" | "generating" | "done"
+  const [step, setStep] = useState(null); // null | "generating" | "done"
   const [error, setError] = useState(null);
   const [isRateLimit, setIsRateLimit] = useState(false);
   const [copyMsg, setCopyMsg] = useState("");
@@ -268,38 +306,273 @@ function App() {
 
   const loadExample = () => { setXlsInput(EXAMPLE_XLSFORM); setLfInput(EXAMPLE_LOGFRAME); };
 
+  const runDemo = () => {
+    setXlsInput(EXAMPLE_XLSFORM);
+    setLfInput(EXAMPLE_LOGFRAME);
+    setPlanData(DEMO_RESULT);
+    setStep("done");
+    setView(VIEWS.PLAN);
+  };
+
+  const [rerunning, setRerunning] = useState(null); // tab name being rerun
+  const [rerunError, setRerunError] = useState(null);
+
+  const rerunTab = async (tab) => {
+    if (!xlsInput.trim()) return;
+    setRerunning(tab); setRerunError(null);
+    try {
+      const res = await callProxy({
+        model:"claude-sonnet-4-5-20250929", max_tokens:4096,
+        messages:[{ role:"user", content:buildTabPrompt(tab, xlsInput, lfInput, planData) }]
+      });
+      const raw = res.content?.map(b=>b.text||"").join("") || "{}";
+      let clean = raw.replace(/```json|```/g,"").trim();
+      const fb = clean.indexOf("{"); const lb = clean.lastIndexOf("}");
+      if (fb !== -1 && lb > fb) clean = clean.substring(fb, lb+1);
+      else {
+        const fa = clean.indexOf("["); const la = clean.lastIndexOf("]");
+        if (fa !== -1 && la > fa) clean = `{"result":${clean.substring(fa, la+1)}}`;
+      }
+      const obj = JSON.parse(clean);
+      if (tab==="protection") {
+        const newProtRows = obj.plan || obj.result || [];
+        setPlanData(p=>{
+          const nonProt = (p.plan||[]).filter(r=>r.flag_type!=="protection");
+          return {...p, plan:[...nonProt, ...newProtRows]};
+        });
+      } else {
+        const key = tab==="cleaning" ? "cleaning" : tab==="crosstabs" ? "crosstabs" : tab==="gaps" ? "gaps" : null;
+        if (key) setPlanData(p=>({...p, [key]: obj[key] || obj.result || p[key]}));
+      }
+    } catch(e) {
+      setRerunError(e.message);
+    } finally {
+      setRerunning(null);
+    }
+  };
+
   const flash = (msg) => { setCopyMsg(msg); setTimeout(()=>setCopyMsg(""),2000); };
+
+  const downloadExcel = () => {
+    if (!planData) return;
+    const wb = XLSX.utils.book_new();
+
+    // ── Design tokens ──
+    const FOREST   = "2D5016";
+    const SAGE     = "4A7C2E";
+    const SAGE_BG  = "EDF5E1";
+    const AMBER_BG = "FFF8E1";
+    const RUST_BG  = "FFF0F0";
+    const BORDER   = {style:"thin", color:{rgb:"C0C0C0"}};
+    const BORDER_ALL = {top:BORDER, bottom:BORDER, left:BORDER, right:BORDER};
+
+    // Helper: sanitize cell values
+    const safe = v => {
+      if (v == null) return "";
+      const s = String(Array.isArray(v) ? v.join(", ") : v);
+      return /^[=+\-@]/.test(s) ? " "+s : s;
+    };
+
+    // Helper: style header row — forest green bg, white bold Cambria
+    const styleHeaders = (ws, ncols) => {
+      for (let c = 0; c < ncols; c++) {
+        const addr = XLSX.utils.encode_cell({r:0, c});
+        if (!ws[addr]) continue;
+        ws[addr].s = {
+          font: {bold:true, color:{rgb:"FFFFFF"}, name:"Cambria", sz:10},
+          fill: {fgColor:{rgb:FOREST}},
+          alignment: {wrapText:true, vertical:"center", horizontal:"center"},
+          border: BORDER_ALL
+        };
+      }
+    };
+
+    // Helper: style data cells — alternating row shading, Calibri 9
+    const styleData = (ws, nrows, ncols, opts) => {
+      for (let r = 1; r < nrows; r++) {
+        const isEven = r % 2 === 0;
+        for (let c = 0; c < ncols; c++) {
+          const addr = XLSX.utils.encode_cell({r, c});
+          if (!ws[addr]) ws[addr] = {t:"s", v:""};
+          const base = {
+            font: {name:"Calibri", sz:9, color:{rgb:"333333"}},
+            alignment: {wrapText:true, vertical:"top"},
+            border: BORDER_ALL
+          };
+          if (isEven) base.fill = {fgColor:{rgb:"F7FAF4"}};
+
+          // Severity coloring for coverage gaps
+          if (opts?.severityCol === c) {
+            const val = (ws[addr].v||"").toLowerCase();
+            if (val === "critical") { base.fill = {fgColor:{rgb:RUST_BG}}; base.font = {...base.font, bold:true, color:{rgb:"C62828"}}; }
+            else if (val === "warning") { base.fill = {fgColor:{rgb:AMBER_BG}}; base.font = {...base.font, color:{rgb:"E65100"}}; }
+          }
+          // Flag type coloring
+          if (opts?.flagTypeCol === c) {
+            const val = (ws[addr].v||"").toLowerCase();
+            if (val === "protection") { base.font = {...base.font, bold:true, color:{rgb:"C62828"}}; }
+            else if (val === "action") { base.font = {...base.font, color:{rgb:"E65100"}}; }
+          }
+          ws[addr].s = base;
+        }
+      }
+    };
+
+    // Helper: freeze top row
+    const freeze = (ws) => { ws["!freeze"] = {xSplit:0, ySplit:1}; };
+
+    // ── Sheet 1: Analysis Plan ──
+    const planHeaders = ["Section","Research Topic","Q#s","Research Question","Indicator Link","Visualization","Disaggregation","Use of Information","Flags","Flag Type"];
+    const planRows = (planData.plan||[]).map(r=>[
+      safe(r.section),safe(r.research_topic),safe(r.relevant_questions),safe(r.research_question),
+      safe(r.indicator_link),safe(r.visualization),safe(r.disaggregation),safe(r.use_of_information),
+      safe(r.flags),safe(r.flag_type)
+    ]);
+    const planWS = XLSX.utils.aoa_to_sheet([planHeaders,...planRows]);
+    planWS["!cols"] = [16,20,14,38,24,22,18,30,34,10].map(w=>({wch:w}));
+    planWS["!rows"] = [{hpt:22},...planRows.map(()=>({hpt:60}))];
+    styleHeaders(planWS, planHeaders.length);
+    styleData(planWS, planRows.length+1, planHeaders.length, {flagTypeCol:9});
+    freeze(planWS);
+    XLSX.utils.book_append_sheet(wb, planWS, "Analysis Plan");
+
+    // ── Sheet 2: Data Cleaning ──
+    const cleanHeaders = ["#","Data Quality Check"];
+    const cleanRows = (planData.cleaning||[]).map((c,i)=>[i+1, safe(c)]);
+    const cleanWS = XLSX.utils.aoa_to_sheet([cleanHeaders,...cleanRows]);
+    cleanWS["!cols"] = [{wch:4},{wch:90}];
+    cleanWS["!rows"] = [{hpt:22},...cleanRows.map(()=>({hpt:40}))];
+    styleHeaders(cleanWS, 2);
+    styleData(cleanWS, cleanRows.length+1, 2);
+    freeze(cleanWS);
+    XLSX.utils.book_append_sheet(wb, cleanWS, "Data Cleaning");
+
+    // ── Sheet 3: Cross-Tabs ──
+    const ctHeaders = ["Variables","Analytical Purpose","Source"];
+    const ctRows = allCrosstabs.map(c=>[safe(c.variables),safe(c.purpose),c.custom?"Custom":"Generated"]);
+    const ctWS = XLSX.utils.aoa_to_sheet([ctHeaders,...ctRows]);
+    ctWS["!cols"] = [{wch:36},{wch:60},{wch:12}];
+    ctWS["!rows"] = [{hpt:22},...ctRows.map(()=>({hpt:50}))];
+    styleHeaders(ctWS, 3);
+    styleData(ctWS, ctRows.length+1, 3);
+    freeze(ctWS);
+    XLSX.utils.book_append_sheet(wb, ctWS, "Cross-Tabs");
+
+    // ── Sheet 4: Coverage Gaps ──
+    const gapHeaders = ["Severity","Indicator","Issue","Detail","Action"];
+    const gapRows = (planData.gaps||[]).map(g=>[safe(g.severity),safe(g.indicator),safe(g.issue),safe(g.detail),safe(g.action)]);
+    const gapWS = XLSX.utils.aoa_to_sheet([gapHeaders,...gapRows]);
+    gapWS["!cols"] = [{wch:10},{wch:26},{wch:34},{wch:48},{wch:38}];
+    gapWS["!rows"] = [{hpt:22},...gapRows.map(()=>({hpt:60}))];
+    styleHeaders(gapWS, 5);
+    styleData(gapWS, gapRows.length+1, 5, {severityCol:0});
+    freeze(gapWS);
+    XLSX.utils.book_append_sheet(wb, gapWS, "Coverage Gaps");
+
+    // ── Sheet 5: Protection Flags ──
+    const protData = (planData.plan||[]).filter(r=>r.flag_type==="protection");
+    const protHeaders = ["Section","Research Topic","Q#s","Research Question","Protection Flag"];
+    const protRows = protData.map(r=>[safe(r.section),safe(r.research_topic),safe(r.relevant_questions),safe(r.research_question),safe(r.flags)]);
+    const protWS = XLSX.utils.aoa_to_sheet([protHeaders,...protRows]);
+    protWS["!cols"] = [{wch:18},{wch:22},{wch:14},{wch:40},{wch:50}];
+    protWS["!rows"] = [{hpt:22},...protRows.map(()=>({hpt:60}))];
+    styleHeaders(protWS, 5);
+    styleData(protWS, protRows.length+1, 5);
+    freeze(protWS);
+    XLSX.utils.book_append_sheet(wb, protWS, "Protection Flags");
+
+    // ── Sheet 6: About ──
+    const aboutData = [
+      ["ANALYSIS PLAN REPORT",""],
+      ["",""],
+      ["Consultant","Burgen Belltawn"],
+      ["Title","MEL Specialist"],
+      ["Email","belltawnb@gmail.com"],
+      ["Website","https://belltawnb.github.io"],
+      ["",""],
+      ["Tool","Analysis Plan Generator"],
+      ["Tool URL","https://belltawnb.github.io/tools/analysis-plan-generator.html"],
+      ["Generated",""+new Date().toLocaleDateString("en-GB",{year:"numeric",month:"long",day:"numeric"})],
+      ["",""],
+      ["Disclaimer","This report was generated using AI-assisted MEL system design."],
+      ["","All outputs should be reviewed by a qualified MEL professional before use in reporting."],
+      ["","Campbell's Law applies: indicators that become targets cease to be good measures."],
+    ];
+    const aboutWS = XLSX.utils.aoa_to_sheet(aboutData);
+    aboutWS["!cols"] = [{wch:16},{wch:72}];
+    // Title: large forest green Cambria
+    if (aboutWS["A1"]) aboutWS["A1"].s = {font:{bold:true,sz:14,name:"Cambria",color:{rgb:FOREST}},alignment:{vertical:"center"}};
+    // Labels: bold Calibri
+    ["A3","A4","A5","A6","A8","A9","A10","A12"].forEach(addr=>{
+      if(aboutWS[addr]) aboutWS[addr].s = {font:{bold:true,name:"Calibri",sz:10,color:{rgb:FOREST}},alignment:{vertical:"top"}};
+    });
+    // Values: regular Calibri
+    ["B3","B4","B5","B6","B8","B9","B10","B12","B13","B14"].forEach(addr=>{
+      if(aboutWS[addr]) aboutWS[addr].s = {font:{name:"Calibri",sz:10,color:{rgb:"333333"}},alignment:{wrapText:true,vertical:"top"}};
+    });
+    // Disclaimer styling
+    if(aboutWS["A12"]) aboutWS["A12"].s = {font:{bold:true,name:"Calibri",sz:10,color:{rgb:"E65100"}},alignment:{vertical:"top"}};
+    XLSX.utils.book_append_sheet(wb, aboutWS, "About");
+
+    XLSX.writeFile(wb, "Analysis_Plan_Report.xlsx");
+  };
+
+    const parseJSON = async (raw) => {
+    let clean = raw.replace(/```json|```/g,"").trim();
+    const fb = clean.indexOf("{"); const lb = clean.lastIndexOf("}");
+    if (fb !== -1 && lb > fb) clean = clean.substring(fb, lb+1);
+    try { return JSON.parse(clean); } catch(e1) {
+      let repaired = clean
+        .replace(/,[ \t\n\r]*([}\]])/g,"$1")
+        .replace(/[\u0000-\u001F\u007F]/g," ");
+      try { return JSON.parse(repaired); } catch(e2) {
+        setStep("repairing");
+        const fixRes = await callProxy({
+          model:"claude-sonnet-4-5-20250929", max_tokens:4096,
+          messages:[{role:"user",content:"Fix this malformed JSON so it parses correctly. Return ONLY valid JSON, nothing else:\n\n"+clean}]
+        });
+        const fixRaw = fixRes.content?.map(b=>b.text||"").join("")||"{}";
+        let fixClean = fixRaw.replace(/```json|```/g,"").trim();
+        const fb2=fixClean.indexOf("{"); const lb2=fixClean.lastIndexOf("}");
+        if(fb2!==-1&&lb2>fb2) fixClean=fixClean.substring(fb2,lb2+1);
+        return JSON.parse(fixClean);
+      }
+    }
+  };
 
   const generate = async () => {
     setError(null); setIsRateLimit(false);
     try {
-      // Step 1: parse
-      setStep("parsing");
-      const parseRes = await callProxy({
-        model:"claude-sonnet-4-5-20250929", max_tokens:4096,
-        messages:[{ role:"user", content:buildParsePrompt(xlsInput, lfInput) }]
-      });
-      const parseRaw = parseRes.content?.map(b=>b.text||"").join("") || "{}";
-      let parseClean = parseRaw.replace(/```json|```/g,"").trim();
-      const fb = parseClean.indexOf("{"); const lb = parseClean.lastIndexOf("}");
-      if (fb !== -1 && lb > fb) parseClean = parseClean.substring(fb, lb+1);
-      const parsedObj = JSON.parse(parseClean);
-      setParsed(parsedObj);
-
-      // Step 2: generate plan
+      // ── Call 1: Analysis plan rows only ──────────────────────────────────
       setStep("generating");
       const planRes = await callProxy({
-        model:"claude-sonnet-4-5-20250929", max_tokens:8192,
-        messages:[{ role:"user", content:buildAnalysisPlanPrompt(parsedObj) }]
+        model:"claude-sonnet-4-5-20250929", max_tokens:4096,
+        messages:[{ role:"user", content:buildPlanPrompt(xlsInput, lfInput) }]
       });
       const planRaw = planRes.content?.map(b=>b.text||"").join("") || "{}";
-      let planClean = planRaw.replace(/```json|```/g,"").trim();
-      const fb2 = planClean.indexOf("{"); const lb2 = planClean.lastIndexOf("}");
-      if (fb2 !== -1 && lb2 > fb2) planClean = planClean.substring(fb2, lb2+1);
-      const planObj = JSON.parse(planClean);
+      const planObj = await parseJSON(planRaw);
       setPlanData(planObj);
-      setStep("done");
       setView(VIEWS.PLAN);
+
+      // ── Call 2: Supporting tabs (cleaning, crosstabs, gaps) ──────────────
+      setStep("supporting");
+      try {
+        const suppRes = await callProxy({
+          model:"claude-sonnet-4-5-20250929", max_tokens:4096,
+          messages:[{ role:"user", content:buildSupportingPrompt(xlsInput, lfInput, planObj.plan||[]) }]
+        });
+        const suppRaw = suppRes.content?.map(b=>b.text||"").join("") || "{}";
+        const suppObj = await parseJSON(suppRaw);
+        setPlanData(p=>({...p,
+          cleaning: suppObj.cleaning||[],
+          crosstabs: suppObj.crosstabs||[],
+          gaps: suppObj.gaps||[]
+        }));
+      } catch(e2) {
+        // Call 2 failed — plan is still shown, warn user to re-run tabs
+        setPlanData(p=>({...p, _suppError: e2.message||"Supporting tabs failed — use ↺ Re-run on each tab."}));
+      }
+      setStep("done");
     } catch(e) {
       setStep(null);
       setIsRateLimit(e.isRateLimit||false);
@@ -434,7 +707,7 @@ function App() {
                     {rowCount} question{rowCount!==1?"s":""} {overLimit?"— over 50 limit":"detected"}
                   </span>
                 )}
-                <button className="btn-outline" style={{ fontSize:11, padding:"4px 10px" }} onClick={loadExample}>Load Flawed Example</button>
+                <button onClick={runDemo} style={{ fontSize:11, padding:"4px 14px", background:C.forest, color:"white", border:"none", borderRadius:6, cursor:"pointer", fontFamily:C.sans, fontWeight:600 }}>See Demo Report ⚡</button>
               </div>
             </div>
             <textarea value={xlsInput} onChange={e=>setXlsInput(e.target.value)}
@@ -472,16 +745,16 @@ function App() {
 
           {/* Generate button */}
           <div style={{ display:"flex", alignItems:"center", gap:16 }}>
-            <button onClick={generate} disabled={!xlsInput.trim()||overLimit||!!step}
+            <button onClick={generate} disabled={!xlsInput.trim()||overLimit||(!!step&&step!=="done")}
               style={{ ...btnPrimary, opacity:(!xlsInput.trim()||overLimit||!!step)?0.5:1 }}>
-              {step==="parsing" && <span style={{ width:14, height:14, border:"2px solid rgba(255,255,255,0.3)", borderTopColor:"#fff", borderRadius:"50%", animation:"spin 0.8s linear infinite", display:"inline-block" }} />}
-              {step==="generating" && <span style={{ width:14, height:14, border:"2px solid rgba(255,255,255,0.3)", borderTopColor:"#fff", borderRadius:"50%", animation:"spin 0.8s linear infinite", display:"inline-block" }} />}
-              {step==="parsing" ? "Parsing form…" : step==="generating" ? "Generating plan…" : "Generate Analysis Plan"}
+              {(step==="generating"||step==="supporting"||step==="repairing") && <span style={{ width:14, height:14, border:"2px solid rgba(255,255,255,0.3)", borderTopColor:"#fff", borderRadius:"50%", animation:"spin 0.8s linear infinite", display:"inline-block" }} />}
+              {step==="generating" ? "Generating plan…" : step==="supporting" ? "Generating supporting tabs…" : step==="repairing" ? "Repairing response…" : "Generate Analysis Plan"}
             </button>
             {step && (
               <div style={{ fontSize:12, color:C.textMuted }}>
-                {step==="parsing" && "Step 1 of 2 — extracting questions and indicator mappings…"}
-                {step==="generating" && "Step 2 of 2 — building analysis plan rows…"}
+                {step==="generating" && "Step 1 of 2 — generating analysis plan rows…"}
+                {step==="supporting" && "Step 2 of 2 — generating cleaning checks, cross-tabs, and gaps…"}
+                {step==="repairing" && "Fixing response format — almost done…"}
               </div>
             )}
           </div>
@@ -509,6 +782,13 @@ function App() {
       {/* ═══ PLAN VIEW ═══ */}
       {view === VIEWS.PLAN && planData && (
         <>
+          {/* Call 2 error warning */}
+          {planData._suppError && (
+            <div style={{ background:"#FDF5F0", borderBottom:"1px solid #E8C4B4", padding:"8px 24px", fontSize:11, color:"#8B4513" }}>
+              ⚠ Supporting tabs (Data Cleaning, Cross-Tabs, Coverage Gaps) did not load — {planData._suppError} Use the ↺ Re-run button on each tab.
+            </div>
+          )}
+
           {/* Summary bar */}
           <div className="no-print" style={{ borderBottom:`1px solid ${C.border}`, padding:"8px 24px", display:"flex", gap:28, background:C.surface, flexWrap:"wrap" }}>
             {[
@@ -549,7 +829,7 @@ function App() {
             )}
           </div>
 
-          <div style={{ padding:"20px 24px", overflowX:"auto" }}>
+          <div style={{ padding:"20px 16px", overflowX:"auto", maxWidth:"100vw" }}>
 
             {/* ANALYSIS PLAN */}
             {activeTab==="plan" && <>
@@ -565,21 +845,22 @@ function App() {
                       <tr className="sec-hdr"><td colSpan={8} style={{ padding:"7px 10px" }}><span style={{ fontFamily:C.mono, fontSize:8, letterSpacing:2, textTransform:"uppercase", color:C.forest, fontWeight:600 }}>{section}</span></td></tr>
                       {rows.map((row,ri)=>(
                         <tr key={ri} style={{ borderBottom:`1px solid ${C.border}`, background:ri%2===0?C.surface:C.surfaceAlt }}>
-                          <td style={{ padding:"8px 10px", color:C.textMid, minWidth:120, verticalAlign:"top", fontWeight:500 }}>{row.research_topic}</td>
-                          <td style={{ padding:"8px 10px", color:C.forest, fontFamily:C.mono, fontSize:10, whiteSpace:"nowrap", verticalAlign:"top" }}>{row.relevant_questions}</td>
-                          <td style={{ padding:"8px 10px", color:C.text, minWidth:200, verticalAlign:"top", lineHeight:1.55 }}>{row.research_question}</td>
-                          <td style={{ padding:"8px 10px", verticalAlign:"top", minWidth:130 }}><IndBadge link={row.indicator_link} /></td>
-                          <td style={{ padding:"8px 10px", color:C.textMuted, minWidth:140, verticalAlign:"top", fontSize:11, lineHeight:1.5 }}>{row.visualization}</td>
-                          <td style={{ padding:"8px 10px", color:C.textMuted, minWidth:130, verticalAlign:"top", fontSize:11, lineHeight:1.5 }}>{row.disaggregation}</td>
-                          <td style={{ padding:"8px 10px", color:C.textMid, minWidth:180, verticalAlign:"top", lineHeight:1.5 }}>{row.use_of_information}</td>
-                          <td style={{ padding:"8px 10px", verticalAlign:"top", minWidth:150 }}><FlagBadge text={row.flags} type={row.flag_type} /></td>
+                          <td style={{ padding:"8px 10px", color:C.textMid, maxWidth:110, minWidth:80, verticalAlign:"top", fontWeight:500 }}>{row.research_topic}</td>
+                          <td style={{ padding:"8px 10px", color:C.forest, fontFamily:C.mono, fontSize:10, verticalAlign:"top", maxWidth:85, overflowWrap:"break-word", wordBreak:"normal", lineHeight:1.5 }}>{row.relevant_questions}</td>
+                          <td style={{ padding:"8px 10px", color:C.text, maxWidth:200, minWidth:160, verticalAlign:"top", lineHeight:1.55, wordBreak:"break-word" }}>{row.research_question}</td>
+                          <td style={{ padding:"8px 10px", verticalAlign:"top", maxWidth:120, minWidth:100 }}><IndBadge link={row.indicator_link} /></td>
+                          <td style={{ padding:"8px 10px", color:C.textMuted, maxWidth:130, minWidth:100, verticalAlign:"top", fontSize:11, lineHeight:1.5, wordBreak:"break-word" }}>{row.visualization}</td>
+                          <td style={{ padding:"8px 10px", color:C.textMuted, maxWidth:110, minWidth:90, verticalAlign:"top", fontSize:11, lineHeight:1.5 }}>{row.disaggregation}</td>
+                          <td style={{ padding:"8px 10px", color:C.textMid, maxWidth:160, minWidth:120, verticalAlign:"top", lineHeight:1.5, wordBreak:"break-word" }}>{row.use_of_information}</td>
+                          <td style={{ padding:"8px 10px", verticalAlign:"top", maxWidth:140, minWidth:100 }}><FlagBadge text={row.flags} type={row.flag_type} /></td>
                         </tr>
                       ))}
                     </React.Fragment>
                   ))}
                 </tbody>
               </table>
-              <div className="no-print" style={{ borderTop:`1px solid ${C.border}`, marginTop:28, paddingTop:14, display:"flex", justifyContent:"flex-end" }}>
+              <div className="no-print" style={{ borderTop:`1px solid ${C.border}`, marginTop:28, paddingTop:14, display:"flex", justifyContent:"flex-end", gap:8 }}>
+                <button onClick={downloadExcel} style={{ ...btnPrimary, fontSize:12, background:C.sage }}>⬇ Download Excel Report</button>
                 <button onClick={()=>window.print()} style={{ ...btnPrimary, fontSize:12 }}>⎙ Print / Save as PDF</button>
               </div>
             </>}
@@ -587,7 +868,13 @@ function App() {
             {/* DATA CLEANING */}
             {activeTab==="cleaning" && <>
               <div style={{ maxWidth:760 }}>
-                <div style={{ background:C.sagePale, border:`1px solid #B8D090`, borderRadius:6, padding:"10px 14px", marginBottom:16, fontSize:12, color:C.textMid, lineHeight:1.6 }}>
+                <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:8 }}>
+                <button className="btn-outline" style={{ fontSize:11, padding:"4px 12px" }} onClick={()=>rerunTab("cleaning")} disabled={!!rerunning}>
+                  {rerunning==="cleaning" ? "Regenerating…" : "↺ Re-run"}
+                </button>
+                {rerunError && rerunning===null && <span style={{ fontSize:11, color:C.rust, marginLeft:8 }}>{rerunError}</span>}
+              </div>
+              <div style={{ background:C.sagePale, border:`1px solid #B8D090`, borderRadius:6, padding:"10px 14px", marginBottom:16, fontSize:12, color:C.textMid, lineHeight:1.6 }}>
                   Run these checks on the raw data export <strong>before</strong> any indicator calculation. Specific to this form's structure and the quality risks identified from your inputs.
                 </div>
                 {(planData.cleaning||[]).map((item,i)=>(
@@ -597,7 +884,8 @@ function App() {
                   </div>
                 ))}
               </div>
-              <div className="no-print" style={{ borderTop:`1px solid ${C.border}`, marginTop:28, paddingTop:14, display:"flex", justifyContent:"flex-end" }}>
+              <div className="no-print" style={{ borderTop:`1px solid ${C.border}`, marginTop:28, paddingTop:14, display:"flex", justifyContent:"flex-end", gap:8 }}>
+                <button onClick={downloadExcel} style={{ ...btnPrimary, fontSize:12, background:C.sage }}>⬇ Download Excel Report</button>
                 <button onClick={()=>window.print()} style={{ ...btnPrimary, fontSize:12 }}>⎙ Print / Save as PDF</button>
               </div>
             </>}
@@ -605,6 +893,11 @@ function App() {
             {/* CROSS-TABS */}
             {activeTab==="crosstabs" && <>
               <div style={{ maxWidth:940 }}>
+                <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:8 }}>
+                  <button className="btn-outline" style={{ fontSize:11, padding:"4px 12px" }} onClick={()=>rerunTab("crosstabs")} disabled={!!rerunning}>
+                    {rerunning==="crosstabs" ? "Regenerating…" : "↺ Re-run"}
+                  </button>
+                </div>
                 {/* Builder */}
                 <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:8, padding:"14px 18px", marginBottom:20 }}>
                   <div style={{ fontFamily:C.mono, fontSize:9, color:C.forest, letterSpacing:2, textTransform:"uppercase", marginBottom:10 }}>+ Add Cross-Tabulation</div>
@@ -660,6 +953,11 @@ function App() {
             {/* COVERAGE GAPS */}
             {activeTab==="gaps" && (
               <div style={{ maxWidth:840 }}>
+                <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:8 }}>
+                  <button className="btn-outline" style={{ fontSize:11, padding:"4px 12px" }} onClick={()=>rerunTab("gaps")} disabled={!!rerunning}>
+                    {rerunning==="gaps" ? "Regenerating…" : "↺ Re-run"}
+                  </button>
+                </div>
                 <div style={{ background:C.amberPale, border:`1px solid ${C.amberBorder}`, borderRadius:6, padding:"10px 14px", marginBottom:20, fontSize:12, color:C.textMid, lineHeight:1.6 }}>
                   Mismatches between your logframe indicators and this form's question coverage. <strong>Critical</strong> gaps affect indicator reportability. <strong>Warnings</strong> affect completeness.
                 </div>
@@ -689,6 +987,11 @@ function App() {
             {/* PROTECTION FLAGS */}
             {activeTab==="protection" && (
               <div style={{ maxWidth:820 }}>
+                <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:8 }}>
+                  <button className="btn-outline" style={{ fontSize:11, padding:"4px 12px" }} onClick={()=>rerunTab("protection")} disabled={!!rerunning}>
+                    {rerunning==="protection" ? "Regenerating…" : "↺ Re-run"}
+                  </button>
+                </div>
                 <div style={{ background:C.rustPale, border:`1px solid ${C.rustBorder}`, borderRadius:6, padding:"10px 14px", marginBottom:20, fontSize:12, color:C.textMid, lineHeight:1.6 }}>
                   <strong style={{ color:C.rust }}>{protRows.length} rows</strong> contain protection flags requiring review by the relevant focal point before the analysis report is finalized.
                 </div>
