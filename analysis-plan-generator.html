@@ -762,6 +762,13 @@ function App() {
               placeholder={"Paste your logframe, results framework, or indicator list.\n\nTab-separated from Excel or plain text both work. Include: indicator names, definitions, baselines, targets, disaggregations. The more complete, the better the indicator linkages and threshold notes."}
               style={{ ...inputStyle, height:160, fontFamily:C.mono, fontSize:11, lineHeight:1.5 }}
             />
+            <div style={{ marginTop:6, fontSize:11, color:C.textMuted, lineHeight:1.6 }}>
+              Include: indicator name, results level, unit, baseline, target, disaggregations, means of verification.{" "}
+              <a href="https://belltawnb.github.io/assets/Logframe_Template.xlsx" download
+                 style={{ color:C.rust, textDecoration:"none", fontWeight:500 }}>
+                Download template ↓
+              </a>
+            </div>
           </div>
 
           {/* Error */}
