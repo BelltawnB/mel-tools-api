@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MEL System Workbook — Burgen Belltawn MEL Tools</title>
+<meta name="description" content="Build your program's indicator measurement system — results framework, indicator register, monitoring tools, and governance — in one exportable workbook.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23FDF5F0' stroke='%23C67B5C' stroke-width='2.5'/%3E%3Crect x='30.5' y='10' width='3' height='44' rx='1.5' fill='%23C67B5C'/%3E%3Ctext x='10' y='43' font-family='Georgia,serif' font-size='26' font-weight='bold' fill='%233D2B22'%3EB%3C/text%3E%3Ctext x='36' y='43' font-family='Georgia,serif' font-size='26' font-weight='bold' fill='%233D2B22'%3EB%3C/text%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&family=IBM+Plex+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<style>
+:root{
+  --terra:#C67B5C;--terra-deep:#B56A4A;--terra-light:#E8C4B4;
+  --terra-glow:#FDF5F0;--cream:#FFF9F4;--bark:#3D2B22;
+  --ink:#2A2220;--ink-soft:#6B5D57;--sage:#7A9E87;--sage-light:#EDF4EF;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Outfit',sans-serif;background:#FAFAF7;color:#2D2D2D;overflow-x:hidden;}
+.site-nav{position:fixed;top:0;left:0;right:0;z-index:200;padding:1rem 2rem;display:flex;justify-content:space-between;align-items:center;background:rgba(255,249,244,0.92);backdrop-filter:blur(20px);border-bottom:1px solid rgba(61,43,34,0.06);}
+.site-nav a{text-decoration:none;}
+.nav-logo{display:flex;align-items:center;gap:0.75rem;text-decoration:none;}
+.nav-logo-text{display:flex;flex-direction:column;line-height:1.15;}
+.nav-logo-name{font-family:'DM Serif Display',serif;font-size:1.15rem;color:var(--ink);letter-spacing:-0.01em;}
+.nav-logo-surname{font-family:'Outfit',sans-serif;font-size:0.65rem;font-weight:500;letter-spacing:0.18em;color:var(--terra);text-transform:uppercase;}
+.convergence-logo{width:38px;height:28px;flex-shrink:0;}
+.nav-links{display:flex;gap:2rem;list-style:none;align-items:center;}
+.nav-links a{color:var(--ink-soft);font-size:0.9rem;font-weight:400;letter-spacing:0.02em;transition:color 0.3s;position:relative;}
+.nav-links a::after{content:'';position:absolute;bottom:-4px;left:0;width:0;height:2px;background:var(--terra);border-radius:2px;transition:width 0.3s ease;}
+.nav-links a:hover{color:var(--ink);}
+.nav-links a:hover::after{width:100%;}
+.nav-links .current{color:var(--terra);font-weight:500;}
+#app{margin-top:0;min-height:calc(100vh - 96px);}
+</style>
+</head>
+<body>
+<nav class="site-nav">
+  <a href="https://belltawnb.github.io/" class="nav-logo">
+    <svg class="convergence-logo" viewBox="0 0 52 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Burgen Belltawn logo">
+      <path d="M6 5 C16 5, 22 17, 28 17" stroke="#E8C4B4" stroke-width="2" stroke-linecap="round" fill="none"/>
+      <path d="M6 31 C16 31, 22 19, 28 17" stroke="#E8C4B4" stroke-width="2" stroke-linecap="round" fill="none"/>
+      <path d="M6 17 L28 17" stroke="#E8C4B4" stroke-width="2" stroke-linecap="round" fill="none"/>
+      <circle cx="6" cy="5" r="3" fill="#E8C4B4"/>
+      <circle cx="6" cy="31" r="3" fill="#E8C4B4"/>
+      <circle cx="6" cy="17" r="3" fill="#C67B5C"/>
+      <circle cx="28" cy="17" r="3.5" fill="#C67B5C"/>
+      <path d="M31.5 17 L46 17" stroke="#B56A4A" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+      <polyline points="40,11 47,17 40,23" stroke="#B56A4A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>
+    <div class="nav-logo-text">
+      <div class="nav-logo-name">Burgen</div>
+      <div class="nav-logo-surname">BELLTAWN</div>
+    </div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="https://belltawnb.github.io/#about">About</a></li>
+    <li><a href="https://belltawnb.github.io/#specialties">Specialties</a></li>
+    <li><a href="https://belltawnb.github.io/#tools" class="current">AI Tools</a></li>
+    <li><a href="https://belltawnb.github.io/#experience">Experience</a></li>
+    <li><a href="https://belltawnb.github.io/#contact">Contact</a></li>
+  </ul>
+</nav>
+<div style="margin-top:64px;background:#FFFDF0;border-bottom:1px solid #E8E0A8;padding:8px 24px;font-size:11px;color:#7A6A20;">
+  ⚠️ Draft tool — functionality may change. Review all exported workbooks before use in production reporting.
+</div>
+<div id="app"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+// ── Colour palette ─────────────────────────────────────────────────────────────
+const C = {
+  ochre:'#8B6914', ochreMid:'#D4A843', ochreLight:'#FFF8E1', ochreBorder:'#E8D89A', ochreDark:'#6B5010',
+  sand:'#F5EDD6', ink:'#2A2220', inkSoft:'#6B5D57', bg:'#FAFAF7', surface:'#FFFFFF',
+  border:'#E8E4DC', muted:'#9A9080', red:'#C62828', redBg:'#FFF0F0',
+};
+
+// ── localStorage persistence ───────────────────────────────────────────────────
+const KEYS = {
+  results:'msw:results', register:'msw:register', dictionary:'msw:dictionary',
+  tools:'msw:tools', ownership:'msw:ownership', changelog:'msw:changelog', programInfo:'msw:programInfo',
+};
+function save(key, data){ try{ localStorage.setItem(key, JSON.stringify(data)); }catch(e){ console.warn('Storage save failed:', e); } }
+function load(key, fallback){ try{ const v=localStorage.getItem(key); return v?JSON.parse(v):fallback; }catch(e){ return fallback; } }
+
+// ── Field helpers ──────────────────────────────────────────────────────────────
+function makeRow(fields){ return fields.reduce((o,f)=>{ o[f.key]=f.type==='bool'?false:''; return o; },{ _id: Date.now()+Math.random() }); }
+
+// ── Field / group definitions ──────────────────────────────────────────────────
+
+const RESULTS_GROUPS = [
+  { label:'Results Chain', cols:['level','resultId','statement'], bg:'#DDEEFF', border:'#AACCEE' },
+  { label:'Assumptions', cols:['assumptions'], bg:'#FFF3E0', border:'#FFCC80' },
+];
+const RESULTS_FIELDS = [
+  { key:'level',       label:'Results Level',   w:120, type:'smart', options:['Goal','Purpose','Outcome','Output'] },
+  { key:'resultId',    label:'Result ID',        w:100 },
+  { key:'statement',   label:'Result Statement', w:360 },
+  { key:'assumptions', label:'Assumptions',      w:280 },
+];
+
+const REGISTER_GROUPS = [
+  { label:'Results Link',           cols:['resultLink','indicatorId'],                              bg:'#DDEEFF', border:'#AACCEE' },
+  { label:'Indicator Definition',   cols:['name','definition','unit','numerator','denominator'],    bg:'#E8F5E9', border:'#A5D6A7' },
+  { label:'Targets & Disaggregation', cols:['baseline','target','disaggregations'],                bg:'#FFF3E0', border:'#FFCC80' },
+  { label:'Data Collection',        cols:['frequency','source','meansOfVerification','questionSource'], bg:'#F3E5F5', border:'#CE93D8' },
+  { label:'Analysis & Reporting',   cols:['analysisMethod','audience'],                            bg:'#FCE4EC', border:'#F48FB1' },
+];
+const REGISTER_FIELDS = [
+  { key:'resultLink',         label:'Result',             w:140, type:'resultsSelect' },
+  { key:'indicatorId',        label:'ID',                 w:80 },
+  { key:'name',               label:'Indicator Name',     w:260 },
+  { key:'definition',         label:'Definition',         w:280 },
+  { key:'unit',               label:'Unit',               w:100, type:'smart', options:['%','#','Mean','Rate','Score','Index','Scale'] },
+  { key:'numerator',          label:'Numerator',          w:180 },
+  { key:'denominator',        label:'Denominator',        w:180 },
+  { key:'baseline',           label:'Baseline',           w:120 },
+  { key:'target',             label:'Target',             w:120 },
+  { key:'disaggregations',    label:'Disaggregations',    w:200 },
+  { key:'frequency',          label:'Frequency',          w:130, type:'smart', options:['Monthly','Quarterly','Semi-annually','Annually','Baseline only','Baseline + endline','Continuous','Per distribution cycle'] },
+  { key:'source',             label:'Data Source',        w:160, type:'smart', options:['Baseline/endline survey','Post-distribution monitoring','Registration records','Distribution records','CARM records','Training attendance','Secondary data','Admin records'] },
+  { key:'meansOfVerification',label:'Means of Verification', w:180 },
+  { key:'questionSource',     label:'Question Source',    w:160 },
+  { key:'analysisMethod',     label:'Analysis Method',    w:180 },
+  { key:'audience',           label:'Reporting Audience', w:140, type:'smart', options:['Donor','Program Managers','Internal only','Donor + Program Managers','Donor + Agencies'] },
+];
+
+const DICT_GROUPS = [
+  { label:'Indicator Reference',   cols:['indicator'],                         bg:'#DDEEFF', border:'#AACCEE' },
+  { label:'Population Logic',      cols:['population','inclRules','exclRules'], bg:'#E8F5E9', border:'#A5D6A7' },
+  { label:'Disaggregation Rules',  cols:['reqDisagg','optDisagg'],              bg:'#FFF3E0', border:'#FFCC80' },
+  { label:'Decision Governance',   cols:['useDonor','useMgmt','useLearning'],   bg:'#F3E5F5', border:'#CE93D8' },
+  { label:'Interpretive Boundaries', cols:['notMeasure','sourceFramework','pirsStatus'], bg:'#FCE4EC', border:'#F48FB1' },
+];
+const DICT_FIELDS = [
+  { key:'indicator',       label:'Indicator',                  w:260, type:'registerSelect' },
+  { key:'population',      label:'Population / Denominator',   w:200 },
+  { key:'inclRules',       label:'Inclusion Rules',            w:180 },
+  { key:'exclRules',       label:'Exclusion Rules',            w:180 },
+  { key:'reqDisagg',       label:'Required Disaggregations',   w:200 },
+  { key:'optDisagg',       label:'Optional Disaggregations',   w:180 },
+  { key:'useDonor',        label:'Donor Reporting',            w:90,  type:'bool' },
+  { key:'useMgmt',         label:'Mgmt Decision',              w:90,  type:'bool' },
+  { key:'useLearning',     label:'Learning / Analysis',        w:90,  type:'bool' },
+  { key:'notMeasure',      label:'What This Does NOT Measure', w:260 },
+  { key:'sourceFramework', label:'Source Framework',           w:150, type:'smart', options:['Standard (WFP FCS)','Standard (SPHERE)','Standard (SMART)','Standard (HDDS)','Standard (HHS)','Standard (rCSI)','Standard (MUAC)','FFP Standard','USAID Standard','Custom'] },
+  { key:'pirsStatus',      label:'PIRS Status',                w:100, type:'smart', options:['Drafted','Reviewed','Approved'] },
+];
+
+const TOOLS_GROUPS = [
+  { label:'Tool Identity',        cols:['toolId','toolName','description'],                  bg:'#DDEEFF', border:'#AACCEE' },
+  { label:'Purpose & Coverage',   cols:['purpose','indicators'],                             bg:'#E8F5E9', border:'#A5D6A7' },
+  { label:'Collection Details',   cols:['sampling','format','dataCollector'],                bg:'#FFF3E0', border:'#FFCC80' },
+  { label:'Storage & Timing',     cols:['storageLocation','frequency'],                      bg:'#F3E5F5', border:'#CE93D8' },
+  { label:'Governance',           cols:['toolOwner','toolOrigin','toolUsage','status'],       bg:'#FCE4EC', border:'#F48FB1' },
+  { label:'Quality & Analysis',   cols:['dataHandoff','dataQuality','analysisOwner'],        bg:'#FFF8E1', border:'#FFD54F' },
+];
+const TOOLS_FIELDS = [
+  { key:'toolId',          label:'Tool ID',                      w:70 },
+  { key:'toolName',        label:'Tool Name',                    w:180 },
+  { key:'description',     label:'Description',                  w:280 },
+  { key:'purpose',         label:'Purpose',                      w:240 },
+  { key:'indicators',      label:'Indicators Covered',           w:280, hint:'Comma-separated indicator names from the Register' },
+  { key:'sampling',        label:'Sampling Approach',            w:200 },
+  { key:'format',          label:'Available Formats',            w:140, type:'smart', options:['ODK/KoboToolbox','Excel','Paper','ODK + Paper','Admin system','Google Forms'] },
+  { key:'dataCollector',   label:'Data Collector',               w:180 },
+  { key:'storageLocation', label:'Storage Location',             w:200 },
+  { key:'frequency',       label:'Collection Frequency',         w:130, type:'smart', options:['Monthly','Quarterly','Semi-annually','Annually','Baseline only','Baseline + endline','Continuous','Per distribution cycle'] },
+  { key:'toolOwner',       label:'Tool Owner',                   w:160, hint:'Who manages this tool and oversees the process?' },
+  { key:'toolOrigin',      label:'Tool Origin',                  w:160, type:'smart', options:['Consortium-specific','Agency-specific','Country-level','Industry standard','Donor-mandated'] },
+  { key:'toolUsage',       label:'When Required',                w:200, hint:'Is this tool required? When is it used or not used?' },
+  { key:'status',          label:'Status',                       w:130, type:'smart', options:['Not started','In progress','Finalized','Finalized — under review'] },
+  { key:'dataHandoff',     label:'Data Flow & Hand-off',         w:240, hint:'What happens after data collection? Who receives it? Where does it go?' },
+  { key:'dataQuality',     label:'Data Quality Protocol',        w:240, hint:'Who cleans the data? What is the DQ protocol? What % is checked?' },
+  { key:'analysisOwner',   label:'Analysis Owner & Frequency',   w:220, hint:'Who leads analysis? How often is it analyzed?' },
+];
+
+const OWN_GROUPS = [
+  { label:'Governed Action', cols:['action'], bg:'#DDEEFF', border:'#AACCEE' },
+  { label:'Authority', cols:['authority'], bg:'#E8F5E9', border:'#A5D6A7' },
+  { label:'Partner Role', cols:['partnerRole'], bg:'#FFF3E0', border:'#FFCC80' },
+  { label:'Documentation & Escalation', cols:['documentation'], bg:'#F3E5F5', border:'#CE93D8' },
+  { label:'Timing & Sensitivity', cols:['timeSensitivity'], bg:'#FCE4EC', border:'#F48FB1' },
+];
+const OWN_FIELDS = [
+  { key:'action',          label:'Action Type',           w:170, type:'smart', options:['Define','Modify definition','Modify calculation','Modify population','Retire indicator','Add disaggregation','Change collection method','Approve PIRS'] },
+  { key:'authority',       label:'Decision Authority Role',w:200, type:'smart', options:['MEL Lead','Program Director','IM Lead','Donor','Program Manager','Partners collectively'] },
+  { key:'partnerRole',     label:'Partner Role',          w:180, type:'smart', options:['Propose','Implement','Consult','Propose + implement','Propose via MEL Lead','Review and comment'] },
+  { key:'documentation',   label:'Documentation Required',w:280 },
+  { key:'timeSensitivity', label:'Time Sensitivity',      w:150, type:'smart', options:['Routine','Urgent / exceptional'] },
+];
+
+const LOG_GROUPS = [
+  { label:'Change Details',       cols:['indicatorName','changeType'],             bg:'#DDEEFF', border:'#AACCEE' },
+  { label:'Rationale',            cols:['reasonCategory','justification'],         bg:'#E8F5E9', border:'#A5D6A7' },
+  { label:'Old → New',            cols:['oldValue','newValue'],                    bg:'#FFF3E0', border:'#FFCC80' },
+  { label:'Impact Assessment',    cols:['comparability'],                          bg:'#FCE4EC', border:'#F48FB1' },
+  { label:'Governance',           cols:['approvedBy','approvalDate','effectiveDate'], bg:'#F3E5F5', border:'#CE93D8' },
+  { label:'Reporting Implications', cols:['caveatRequired','reportingPaused'],     bg:'#FFFDE7', border:'#FFF59D' },
+];
+const LOG_FIELDS = [
+  { key:'indicatorName',   label:'Indicator Affected',       w:220, type:'registerSelect' },
+  { key:'changeType',      label:'Change Type',              w:140, type:'smart', options:['Definition','Calculation','Population','Timing','Disaggregation','Target','Retirement'] },
+  { key:'reasonCategory',  label:'Reason for Change',        w:190, type:'smart', options:['Donor requirement','Access / security constraint','Error correction','Learning / refinement'] },
+  { key:'justification',   label:'Justification',            w:240 },
+  { key:'oldValue',        label:'Old Value / Text',         w:190 },
+  { key:'newValue',        label:'New Value / Text',         w:190 },
+  { key:'comparability',   label:'Impact on Comparability',  w:150, type:'smart', options:['None','Partial','Full break'] },
+  { key:'approvedBy',      label:'Approval Authority',       w:170, type:'smart', options:['MEL Lead','Program Director','IM Lead','Donor','Program Manager'] },
+  { key:'approvalDate',    label:'Approval Date',            w:120, type:'date' },
+  { key:'effectiveDate',   label:'Effective Date',           w:120, type:'date' },
+  { key:'caveatRequired',  label:'Caveat Required',          w:110, type:'smart', options:['Yes','No'] },
+  { key:'reportingPaused', label:'Reporting Paused',         w:110, type:'smart', options:['Yes','No'] },
+];
+
+// ── Demo data ──────────────────────────────────────────────────────────────────
+const EX_RESULTS = [
+  { _id:'r1', level:'Goal',    resultId:'G1',  statement:'Improved food security for vulnerable households in target districts', assumptions:'' },
+  { _id:'r2', level:'Purpose', resultId:'P1',  statement:'Improved access to adequate food basket for target households', assumptions:'Markets remain functional and accessible; no major escalation of conflict' },
+  { _id:'r3', level:'Outcome', resultId:'OC1', statement:'Improved dietary adequacy among program participants', assumptions:'Food items available at local markets; households able to access distribution sites' },
+  { _id:'r4', level:'Outcome', resultId:'OC2', statement:'Reduced acute malnutrition among children 6-59 months', assumptions:'Caregivers apply IYCF knowledge; health services accessible' },
+  { _id:'r5', level:'Output',  resultId:'OP1', statement:'Food vouchers distributed to target households', assumptions:'Supply chain uninterrupted; vendor network operational' },
+  { _id:'r6', level:'Output',  resultId:'OP2', statement:'Livelihoods support provided to eligible households', assumptions:'Sufficient qualified participants; training venues accessible' },
+];
+const EX_REGISTER = [
+  { _id:'i1', resultLink:'OC1', indicatorId:'OC1.1', name:'% households with acceptable food consumption', definition:'Percentage of surveyed households with a Food Consumption Score (FCS) of 35 or above, indicating acceptable food consumption in the 7 days prior to the survey.', unit:'%', numerator:'Number of households with FCS ≥35', denominator:'Total households surveyed', baseline:'29%', target:'50%', disaggregations:'Sex of HoH; displacement status; governorate', frequency:'Baseline + endline', source:'Baseline/endline survey', meansOfVerification:'Baseline/endline surveys', questionSource:'FCS module: Q1–Q8', analysisMethod:'Summary table by FCS category disaggregated by HoH sex and displacement status', audience:'Donor' },
+  { _id:'i2', resultLink:'OC2', indicatorId:'OC2.1', name:'% children 6-59 months with global acute malnutrition (GAM)', definition:'Percentage of children aged 6–59 months with MUAC below 125mm or bilateral pitting oedema.', unit:'%', numerator:'Children with MUAC <125mm or bilateral oedema', denominator:'All children 6–59 months surveyed', baseline:'18%', target:'10%', disaggregations:'Sex; age band (6–23 / 24–59 months); displacement status', frequency:'Baseline + endline', source:'Baseline/endline survey', meansOfVerification:'SMART survey', questionSource:'Anthropometry module', analysisMethod:'Prevalence by sex and age band; comparison to national reference', audience:'Donor' },
+  { _id:'i3', resultLink:'OP1', indicatorId:'OP1.1', name:'Number of individuals participating in food security program', definition:'All members of households benefiting from food voucher distribution, disaggregated by sex.', unit:'#', numerator:'', denominator:'', baseline:'0', target:'67,081', disaggregations:'Sex; district; displacement status', frequency:'Monthly', source:'Registration records', meansOfVerification:'Registration Records; Distribution Records', questionSource:'Partner registration tool', analysisMethod:'Tabulation by location, sex, and displacement status', audience:'Donor + Agencies' },
+];
+const EX_DICT = [
+  { _id:'d1', indicator:'% households with acceptable food consumption', population:'All enrolled program households in the catchment area', inclRules:'Households that received at least one assistance cycle in the reference period', exclRules:'Households surveyed on distribution days; households with incomplete FCS data (<7 days reported)', reqDisagg:'Sex of household head; displacement status (IDP/host/returnee); governorate', optDisagg:'Household size; livelihood zone', useDonor:true, useMgmt:true, useLearning:true, notMeasure:'Does not measure dietary diversity, income, resilience, or long-term food security outcomes. FCS ≥35 threshold may require adjustment for pastoralist contexts.', sourceFramework:'Standard (WFP FCS)', pirsStatus:'Approved' },
+  { _id:'d2', indicator:'% children 6-59 months with global acute malnutrition (GAM)', population:'Children 6–59 months in surveyed households', inclRules:'Children present at time of survey', exclRules:'Children with disability preventing MUAC measurement', reqDisagg:'Sex; age band (6–23 / 24–59 months); displacement status', optDisagg:'Livelihood zone', useDonor:true, useMgmt:true, useLearning:false, notMeasure:'Does not measure chronic malnutrition (stunting) or micronutrient deficiency. MUAC is a proxy and does not replace WHZ for clinical classification.', sourceFramework:'Standard (SMART)', pirsStatus:'Approved' },
+];
+
+const EX_TOOLS = [
+  { _id:'t1', toolId:'T1', toolName:'Baseline/endline survey', description:'Comprehensive household survey covering food consumption, nutrition, livelihoods, and protection.', purpose:'Report against program outcome indicators; profile participant population.', indicators:'% households with acceptable food consumption, % children 6-59 months with global acute malnutrition (GAM)', sampling:'Stratified random sample of program participants', format:'ODK/KoboToolbox', dataCollector:'Partner MEL teams', storageLocation:'Program shared drive > MEL > Surveys', frequency:'Baseline + endline', dataHandoff:'Baseline: Data collected on paper, entered into Enketo at office. Endline: TBD.', dataQuality:'Each agency confirms data accuracy upon submission. Final DQ review conducted by MEL Specialist during analysis.', toolOwner:'MEL Specialist', analysisOwner:'MEL Specialist, with validation by TWG and MEL team.', toolUsage:'Required at the beginning and end of the program.', toolOrigin:'Consortium-specific', status:'Finalized' },
+  { _id:'t2', toolId:'T2', toolName:'Post-distribution monitoring', description:'Short household survey after each distribution cycle.', purpose:'Monitor distribution quality, safety, and timeliness.', indicators:'', sampling:'Random sample of distribution recipients per cycle', format:'ODK/KoboToolbox', dataCollector:'Partner MEL teams', storageLocation:'Program shared drive > MEL > PDM', frequency:'Per distribution cycle', dataHandoff:'Summarized in monthly reports by MEL team. Submitted by end of month.', dataQuality:'Each agency confirms data accuracy upon submission. Final DQ review by MEL Specialist during analysis.', toolOwner:'MEL Specialist', analysisOwner:'MEL Specialist. Automated R report produces monthly and quarterly outputs; MEL Specialist adds contextual narrative.', toolUsage:'Required for a sample of distributions, up to 15 days after distribution.', toolOrigin:'Consortium-specific', status:'Finalized' },
+  { _id:'t3', toolId:'T3', toolName:'Distribution records', description:'Agency-specific tool recording distribution details per household.', purpose:'Track output delivery and validate participation counts.', indicators:'Number of individuals participating in food security program', sampling:'Census — all distribution recipients', format:'Excel', dataCollector:'Partner program teams', storageLocation:'Each partner manages own records', frequency:'Monthly', dataHandoff:'Summarized monthly and submitted to consortium through IPTT tracker.', dataQuality:'Each agency confirms data accuracy upon submission.', toolOwner:'Agency program team', analysisOwner:'IPTT data included in all donor reports.', toolUsage:'Required to record participant information at each distribution.', toolOrigin:'Agency-specific', status:'Finalized' },
+];
+
+const EX_OWN = [
+  { _id:'o1', action:'Define', authority:'MEL Lead', partnerRole:'Propose', documentation:'Justification note + indicator dictionary entry (draft). Escalate to Program Director if definition is contested.', timeSensitivity:'Routine' },
+  { _id:'o2', action:'Modify definition', authority:'MEL Lead', partnerRole:'Propose', documentation:'Change log entry; old vs. new definition; comparability assessment. Notify donor if donor-required indicator.', timeSensitivity:'Routine' },
+  { _id:'o3', action:'Modify calculation', authority:'MEL Lead', partnerRole:'Propose', documentation:'Change log entry; updated PIRS; enumerator training note. Escalate to Program Director if change breaks trend.', timeSensitivity:'Urgent / exceptional' },
+  { _id:'o4', action:'Retire indicator', authority:'Program Director', partnerRole:'Propose via MEL Lead', documentation:'Retirement note; final reported value; donor notification letter; PMP update.', timeSensitivity:'Routine' },
+  { _id:'o5', action:'Approve PIRS', authority:'MEL Lead', partnerRole:'Review and comment', documentation:'Signed PIRS approval form; version history note.', timeSensitivity:'Routine' },
+];
+const EX_LOG = [
+  { _id:'l1', indicatorName:'% households with acceptable food consumption', changeType:'Calculation', reasonCategory:'Donor requirement', justification:'Donor requested alignment with WFP global methodology update; stricter threshold enables comparison with national data.', oldValue:'FCS threshold: ≥28 (borderline or above)', newValue:'FCS threshold: ≥35 (acceptable only)', comparability:'Partial', approvedBy:'MEL Lead', approvalDate:'2025-03-10', effectiveDate:'2025-04-01', caveatRequired:'Yes', reportingPaused:'No' },
+  { _id:'l2', indicatorName:'Number of individuals participating in food security program', changeType:'Population', reasonCategory:'Access / security constraint', justification:'Flooding in two districts prevented programming. Inclusion would inflate the denominator.', oldValue:'All program districts', newValue:'Active districts only (excl. 2 flood-affected)', comparability:'Partial', approvedBy:'MEL Lead', approvalDate:'2025-06-20', effectiveDate:'2025-07-01', caveatRequired:'Yes', reportingPaused:'No' },
+];
+const EX_PROGRAM = {
+  programName:'Food Security and Livelihoods Program (Demo)',
+  organization:'Demo Organization',
+  donor:'USAID/BHA',
+  period:'Oct 2024 – Sep 2027',
+  country:'Fictional country',
+  melLead:'',
+};
+
+// ── Logframe parser ────────────────────────────────────────────────────────────
+// Handles real-world logframes pasted from Excel.
+//
+// Key facts learned from actual program data:
+//   - Indicators are in COL B (e.g. "P 1.1 Percentage of...", "OP 1.1.1 Number of...")
+//   - Results levels are in COL A (e.g. "Purpose 1: Improved access...")
+//   - Multi-line cell content (newlines inside quoted Excel cells) arrives as
+//     continuation rows — these have no tabs or have col A AND col B both empty/fragment
+//   - Col B on a results row is a header row label (e.g. "Indicator"), not an indicator
+//   - Many cols after B (definition, source, MoV, frequency, baseline, target, etc.)
+//     appear as subsequent cols on the same row — map them to register fields
+//
+// Returns { results: [...Tab1 rows], indicators: [...Tab2 rows] }
+function parseLogframe(text, existingResults) {
+  // Detect quoted multi-line cells: Excel wraps cells with newlines in double-quotes.
+  // When pasted, those newlines become literal \n within the row.
+  // Strategy: first reassemble quoted cells that span multiple raw lines.
+  const lines = reassembleQuotedCells(text);
+
+  // Results-level patterns — match col A
+  // Capture group 1 = the numeric part (e.g. "1", "1.1", "2.3") so we can reuse it as the resultId
+  const LEVEL_PATTERNS = [
+    { re:/^goal\s*([\d.]*)[:\s]/i,          level:'Goal',    prefix:'G' },
+    { re:/^impact\s*([\d.]*)[:\s]/i,         level:'Goal',    prefix:'G' },
+    { re:/^purpose\s*([\d.]*)[:\s]/i,        level:'Purpose', prefix:'P' },
+    { re:/^outcome\s*([\d.]*)[:\s]/i,        level:'Outcome', prefix:'OC' },
+    { re:/^output\s*([\d.]+)[:\s]/i,         level:'Output',  prefix:'OP' },
+    { re:/^ops?\s*([\d.]+)[:\s]/i,           level:'Output',  prefix:'OP' },  // Op 1.1: / Ops 1.1:
+    { re:/^activity\s*([\d.]*)[:\s]/i,       level:'Output',  prefix:'OP' },
+    { re:/^intermediate result\s*([\d.]*)[:\s]/i, level:'Outcome', prefix:'OC' },
+    { re:/^ir\s*([\d.]+)[:\s]/i,             level:'Outcome', prefix:'OC' },  // IR 1:
+  ];
+
+  // Indicator ID patterns — match col B
+  // Covers: P 1.1, OP 1.1.1, plain numeric "1.", "1.1", "1.1.1", "Number of...", "% of..."
+  const INDICATOR_ID_PATTERNS = [
+    /^[A-Z]{1,3}\s*\d+[\.\d]*\s+/i,         // P 1.1 ..., OP 1.2.3 ...
+    /^\d+\.\d[\d.]*\s+/,                      // 1.1 Difference..., 1.1.1 # of HH...
+    /^\d+\.\s+/,                              // 1. % of beneficiaries...
+    /^#\s*of\b/i,
+    /^number of\b/i,
+    /^percent(age)? of\b/i,
+    /^%\s*(of\b|households\b|children\b|beneficiar|local\b|women\b|individ)/i,
+    /^proportion of\b/i,
+    /^rate of\b/i,
+    /^mean\b/i,
+    /^score\b/i,
+    /^index\b/i,
+    /^prevalence\b/i,
+    /^difference in\b/i,
+    /^reduced\b/i,
+  ];
+
+  // Header/skip patterns for col B — these are column headers or non-indicator content
+  const COL_B_SKIP = [
+    /^indicator\s*(definition|name|$)/i,
+    /^null$/i,
+    /^source$/i,
+    /^means of/i,
+    /^monitoring/i,
+    /^question source/i,
+    /^numerator$/i,
+    /^denominator$/i,
+    /^reporting freq/i,
+    /^baseline/i,
+    /^target/i,
+    /^unit of dis/i,
+    /^analysis$/i,
+    /^risks/i,
+    /^audience$/i,
+    /^comments$/i,
+    /^T\d+\./i,                 // T1. Baseline/endline surveys
+    /^FFP\b/i,
+    /^OFDA\b/i,
+    /^Custom$/i,
+    /^- /,                      // bullet fragments from multi-line cells
+    /^\d+%/,                    // percentage fragments
+    /^(twice|once|monthly|quarterly|annually|semi)/i,
+    /^(section|baseline:|target:|mean\s*=)/i,
+  ];
+
+  // Build counters seeded from existing results so IDs don't collide
+  const levelCounters = { G:0, P:0, OC:0, OP:0 };
+  (existingResults || []).forEach(r => {
+    const prefixMap = { Goal:'G', Purpose:'P', Outcome:'OC', Output:'OP' };
+    const prefix = prefixMap[r.level];
+    if (prefix) levelCounters[prefix] = Math.max(levelCounters[prefix], parseInt(r.resultId.replace(/\D/g,''))||0);
+  });
+  const nextId = (prefix) => { levelCounters[prefix] = (levelCounters[prefix]||0) + 1; return prefix + levelCounters[prefix]; };
+
+  // Column index map — built from header row if present, falls back to Yemen defaults
+  // Keys are Register field names, values are column indices
+  let colMap = {
+    definition:2, source:3, meansOfVerification:4, questionSource:6,
+    numerator:7, denominator:8, frequency:9, baseline:10, target:12,
+    disaggregations:13, analysisMethod:14, audience:17
+  };
+  let headerDetected = false;
+
+  // Header detection patterns: maps header text → Register field key
+  const HEADER_PATTERNS = [
+    { re:/^indicator\s*def/i,         key:'definition' },
+    { re:/^definition/i,              key:'definition' },
+    { re:/^(data\s*)?source/i,        key:'source' },
+    { re:/^means of ver/i,            key:'meansOfVerification' },
+    { re:/^question\s*source/i,       key:'questionSource' },
+    { re:/^numerator/i,               key:'numerator' },
+    { re:/^denominator/i,             key:'denominator' },
+    { re:/^(reporting\s*)?freq/i,     key:'frequency' },
+    { re:/^baseline/i,                key:'baseline' },
+    { re:/^target\s*(value)?$/i,      key:'target' },
+    { re:/^unit of dis/i,             key:'disaggregations' },
+    { re:/^(unit of\s*)?dis.?aggreg/i,key:'disaggregations' },
+    { re:/^analysis/i,                key:'analysisMethod' },
+    { re:/^(reporting\s*)?audience/i, key:'audience' },
+  ];
+
+  const results = [];
+  const indicators = [];
+  const seen = new Set();
+  let lastResultId = '';
+
+  // Helper: extract fields from a row using the current colMap
+  const extractFields = (cols) => {
+    const g = (key) => clean(cols[colMap[key]] || '');
+    return {
+      def:      g('definition'),
+      source:   mapSource(g('source')),
+      mov:      g('meansOfVerification'),
+      qSrc:     g('questionSource'),
+      num:      g('numerator'),
+      den:      g('denominator'),
+      freq:     mapFrequency(g('frequency')),
+      baseline: g('baseline'),
+      target:   extractTarget(g('target')),
+      disagg:   g('disaggregations'),
+      analysis: g('analysisMethod'),
+      audience: mapAudience(g('audience')),
+    };
+  };
+
+  for (const line of lines) {
+    const cols = splitTSV(line);
+    const c0 = (cols[0] || '').trim();
+    const c1 = (cols[1] || '').trim();
+
+    if (!c0 && !c1) continue;
+
+    // ── Header row detection ───────────────────────────────────────────────────
+    // If col B looks like "Indicator" or "Indicator Definition", this is a header row
+    // Scan all columns and build colMap from header labels
+    if (!headerDetected && /^indicator/i.test(c1) && cols.length > 4) {
+      const newMap = {};
+      cols.forEach((h, i) => {
+        const hTrim = (h||'').trim();
+        const match = HEADER_PATTERNS.find(p => p.re.test(hTrim));
+        if (match && !(match.key in newMap)) newMap[match.key] = i;
+      });
+      // Only adopt if we detected at least 3 useful columns
+      if (Object.keys(newMap).length >= 3) {
+        colMap = { ...colMap, ...newMap };
+        headerDetected = true;
+      }
+      continue; // header row — don't try to parse as data
+    }
+
+    // ── Results level row (col A matches) ──────────────────────────────────────
+    const levelMatch = LEVEL_PATTERNS.find(lp => lp.re.test(c0));
+    if (levelMatch) {
+      const m = c0.match(levelMatch.re);
+      const numericPart = m && m[1] ? m[1] : null;
+      const resultId = numericPart ? (levelMatch.prefix + numericPart) : nextId(levelMatch.prefix);
+      const statement = c0.replace(levelMatch.re, '').replace(/^[\s:]+/, '').trim();
+      results.push({ _id:'p_'+Date.now()+Math.random(), level:levelMatch.level, resultId, statement, assumptions:'' });
+      lastResultId = resultId;
+      // ALSO check col B — some formats put the indicator on the same row as the result
+      if (c1 && !COL_B_SKIP.some(p => p.test(c1)) && INDICATOR_ID_PATTERNS.some(p => p.test(c1)) && !seen.has(c1)) {
+        seen.add(c1);
+        const [indicatorId, name] = splitIndicatorId(c1);
+        const {def,source,mov,qSrc,num,den,freq,baseline,target,disagg,analysis,audience} = extractFields(cols);
+        indicators.push({ ...makeRow(REGISTER_FIELDS), _id:'pi_'+Date.now()+Math.random(), indicatorId, name, definition:def, resultLink:lastResultId, source, meansOfVerification:mov, questionSource:qSrc, numerator:num, denominator:den, frequency:freq, baseline, target, disaggregations:disagg, analysisMethod:analysis, audience });
+      }
+      continue;
+    }
+
+    // ── Indicator row (col B matches an indicator ID pattern) ─────────────────
+    if (c1 && !COL_B_SKIP.some(p => p.test(c1)) && INDICATOR_ID_PATTERNS.some(p => p.test(c1))) {
+      if (!seen.has(c1)) {
+        seen.add(c1);
+        const [indicatorId, name] = splitIndicatorId(c1);
+        const {def,source,mov,qSrc,num,den,freq,baseline,target,disagg,analysis,audience} = extractFields(cols);
+
+        indicators.push({
+          ...makeRow(REGISTER_FIELDS),
+          _id: 'pi_'+Date.now()+Math.random(),
+          indicatorId, name,
+          definition: def,
+          resultLink: lastResultId,
+          source, meansOfVerification:mov, questionSource:qSrc,
+          numerator:num, denominator:den,
+          frequency:freq, baseline, target,
+          disaggregations:disagg, analysisMethod:analysis, audience,
+        });
+      }
+      continue;
+    }
+
+    // ── Fallback: col A has what looks like an indicator (single-column logframes) ──
+    if (!c1 && c0 && INDICATOR_ID_PATTERNS.some(p => p.test(c0)) && !LEVEL_PATTERNS.some(lp => lp.re.test(c0))) {
+      if (!seen.has(c0)) {
+        seen.add(c0);
+        const [indicatorId, name] = splitIndicatorId(c0);
+        indicators.push({ ...makeRow(REGISTER_FIELDS), _id:'pi_'+Date.now()+Math.random(), indicatorId, name, resultLink:lastResultId });
+      }
+    }
+  }
+
+  return { results, indicators };
+}
+
+// Split "P 1.1 Percentage of..." → ["P1.1", "Percentage of..."]
+// Also handles plain numeric: "1.1.1 # of HH..." → ["1.1.1", "# of HH..."]
+// And "1. % of beneficiaries..." → ["1", "% of beneficiaries..."]
+function splitIndicatorId(str) {
+  // Letter prefix: P 1.1, OP 1.2.3, OC 1.1
+  const letterMatch = str.match(/^([A-Z]{1,3}\s*[\d.]+)\s+(.*)/i);
+  if (letterMatch) return [letterMatch[1].replace(/\s+/g,''), letterMatch[2].trim()];
+  // Plain numeric with dot: 1.1.1 # of..., 1.2 Reduced...
+  const numericMatch = str.match(/^(\d+(?:\.\d+)+)\.?\s+(.*)/);
+  if (numericMatch) return [numericMatch[1], numericMatch[2].trim()];
+  // Single number with dot: 1. % of...
+  const singleMatch = str.match(/^(\d+)\.\s+(.*)/);
+  if (singleMatch) return [singleMatch[1], singleMatch[2].trim()];
+  return ['', str];
+}
+
+// Reassemble rows that were split by newlines inside quoted Excel cells.
+// Excel quote-wraps cells containing newlines: "line1\nline2\nline3"
+// When pasted, these appear as separate lines. We rejoin them.
+function reassembleQuotedCells(text) {
+  const raw = text.split('\n');
+  const out = [];
+  let buf = '';
+  let openQuotes = 0;
+
+  for (const line of raw) {
+    // Count unescaped quotes to track whether we're inside a quoted cell
+    const q = (line.match(/"/g) || []).length;
+    openQuotes += q;
+
+    if (buf) {
+      buf += ' ' + line.trimEnd();
+    } else {
+      buf = line.trimEnd();
+    }
+
+    // Even number of total quotes seen → all cells are closed
+    if (openQuotes % 2 === 0) {
+      out.push(buf);
+      buf = '';
+      openQuotes = 0;
+    }
+  }
+  if (buf) out.push(buf);
+  return out;
+}
+
+// Split a TSV line respecting quoted fields (which may contain tabs)
+function splitTSV(line) {
+  const cols = [];
+  let cur = '';
+  let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') { inQ = !inQ; }
+    else if (ch === '\t' && !inQ) { cols.push(cur); cur = ''; }
+    else { cur += ch; }
+  }
+  cols.push(cur);
+  return cols;
+}
+
+function clean(v) {
+  if (!v) return '';
+  const s = v.replace(/^"+|"+$/g, '').replace(/\s+/g,' ').trim();
+  return s === 'null' ? '' : s;
+}
+
+function extractTarget(v) {
+  if (!v) return '';
+  // Strip "Target:" prefix common in logframes
+  return v.replace(/^target[:\s]*/i, '').trim();
+}
+
+function mapSource(v) {
+  if (!v) return '';
+  const vl = v.toLowerCase();
+  if (/baseline|endline|survey/i.test(vl)) return 'Baseline/endline survey';
+  if (/post.?distrib|pdm/i.test(vl)) return 'Post-distribution monitoring';
+  if (/registr/i.test(vl)) return 'Registration records';
+  if (/distribut/i.test(vl)) return 'Distribution records';
+  if (/carm/i.test(vl)) return 'CARM records';
+  if (/training|attendance/i.test(vl)) return 'Training attendance';
+  if (/admin/i.test(vl)) return 'Admin records';
+  return v;
+}
+
+function mapFrequency(v) {
+  if (!v) return '';
+  const vl = v.toLowerCase();
+  if (/monthly/i.test(vl)) return 'Monthly';
+  if (/quarterly/i.test(vl)) return 'Quarterly';
+  if (/semi.?annual/i.test(vl)) return 'Semi-annually';
+  if (/annual/i.test(vl)) return 'Annually';
+  if (/baseline.*endline|endline.*baseline|twice/i.test(vl)) return 'Baseline + endline';
+  if (/baseline only/i.test(vl)) return 'Baseline only';
+  if (/per distrib/i.test(vl)) return 'Per distribution cycle';
+  if (/continu/i.test(vl)) return 'Continuous';
+  return v;
+}
+
+function mapAudience(v) {
+  if (!v) return '';
+  const vl = v.toLowerCase();
+  if (/donor.*agenc|agenc.*donor/i.test(vl)) return 'Donor + Agencies';
+  if (/donor.*program|program.*donor/i.test(vl)) return 'Donor + Program Managers';
+  if (/donor/i.test(vl)) return 'Donor';
+  if (/program manager/i.test(vl)) return 'Program Managers';
+  if (/internal/i.test(vl)) return 'Internal only';
+  return v;
+}
+
+// ── Auto-ID logic for Results ──────────────────────────────────────────────────
+function suggestResultId(level, existingResults) {
+  const prefixMap = { Goal:'G', Purpose:'P', Outcome:'OC', Output:'OP' };
+  const prefix = prefixMap[level] || level.slice(0,2).toUpperCase();
+  const existing = existingResults.filter(r => r.level === level).length;
+  return prefix + (existing + 1);
+}
+
+// Map Register source/methodology values → Dictionary sourceFramework options
+function mapSourceFramework(source, indicatorName) {
+  const n = (indicatorName||'').toLowerCase();
+  const s = (source||'').toLowerCase();
+  if (/fcs|food consumption/i.test(n)) return 'Standard (WFP FCS)';
+  if (/muac|gam|acute malnutrition|sam\b|mam\b/i.test(n)) return 'Standard (SMART)';
+  if (/hhs|hunger scale/i.test(n)) return 'Standard (HHS)';
+  if (/rcsi|coping strateg/i.test(n)) return 'Standard (rCSI)';
+  if (/hdds|diet.*divers/i.test(n)) return 'Standard (HDDS)';
+  if (/ffp/i.test(s)) return 'FFP Standard';
+  if (/usaid/i.test(s)) return 'USAID Standard';
+  return 'Custom';
+}
+
+// ── SmartSelect ────────────────────────────────────────────────────────────────
+function SmartSelect({ value, options, onChange, placeholder }) {
+  const isCustom = value && !options.includes(value);
+  const [showCustom, setShowCustom] = useState(isCustom);
+  const [customVal, setCustomVal] = useState(isCustom ? value : '');
+  const inputRef = useRef(null);
+  useEffect(() => { if (showCustom && inputRef.current) inputRef.current.focus(); }, [showCustom]);
+
+  if (showCustom) return (
+    <div style={{display:'flex',alignItems:'center',padding:'4px 6px',gap:4}}>
+      <input ref={inputRef} value={customVal}
+        onChange={e => { setCustomVal(e.target.value); onChange(e.target.value); }}
+        onBlur={() => { if (!customVal) { setShowCustom(false); onChange(''); } }}
+        placeholder="Type value…"
+        style={{flex:1,border:'none',outline:'none',background:'transparent',fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.ink}}
+      />
+      <button onClick={() => { setShowCustom(false); setCustomVal(''); onChange(''); }}
+        style={{background:'none',border:'none',cursor:'pointer',color:C.muted,fontSize:13,lineHeight:1,padding:'0 2px'}}>×</button>
+    </div>
+  );
+  return (
+    <select value={value || ''} onChange={e => { if (e.target.value === '__other') { setShowCustom(true); setCustomVal(''); } else { onChange(e.target.value); } }}
+      style={{width:'100%',border:'none',outline:'none',background:'transparent',fontFamily:"'DM Sans',sans-serif",fontSize:12,color:value?C.ink:C.muted,padding:'6px 8px',cursor:'pointer'}}>
+      <option value="">{placeholder || '— select —'}</option>
+      {options.map(o => <option key={o} value={o}>{o}</option>)}
+      <option value="__other">Other (specify)…</option>
+    </select>
+  );
+}
+
+// ── ResultsSelect: dropdown populated from Tab 1 ───────────────────────────────
+function ResultsSelect({ value, results, onChange }) {
+  // value = resultId string (e.g. "OP1")
+  // Display: "OP1: Improved access to..." (truncated)
+  const displayLabel = (resultId) => {
+    const r = results.find(r => r.resultId === resultId);
+    if (!r) return resultId || '';
+    const stmt = r.statement ? r.statement.slice(0, 40) + (r.statement.length > 40 ? '…' : '') : '';
+    return `${r.resultId}: ${stmt}`;
+  };
+
+  // Orphan detection: value set but not in current results
+  const isOrphan = value && !results.find(r => r.resultId === value);
+
+  return (
+    <select value={value || ''} onChange={e => onChange(e.target.value)}
+      style={{width:'100%',border:'none',outline:'none',background:'transparent',fontFamily:"'DM Sans',sans-serif",fontSize:12,color:isOrphan?C.red:value?C.ink:C.muted,padding:'6px 8px',cursor:'pointer',fontStyle:isOrphan?'italic':'normal'}}>
+      <option value="">— link to result —</option>
+      {isOrphan && <option value={value} style={{color:C.red}}>⚠ {value} (deleted)</option>}
+      {results.map(r => (
+        <option key={r._id} value={r.resultId}>{displayLabel(r.resultId)}</option>
+      ))}
+    </select>
+  );
+}
+
+// ── RegisterSelect: dropdown populated from Tab 2 ─────────────────────────────
+// onSelectRow: optional callback receiving the full register row — used by Dictionary
+// to pre-populate governance fields when an indicator is chosen
+function RegisterSelect({ value, register, onChange, onSelectRow, dictionaryEntries }) {
+  const isOrphan = value && !register.find(r => r.name === value);
+  // Indicators that already have a dictionary entry
+  const entered = new Set((dictionaryEntries||[]).map(d => d.indicator).filter(Boolean));
+  return (
+    <select value={value || ''} onChange={e => {
+      const v = e.target.value;
+      onChange(v);
+      if (onSelectRow && v) {
+        const row = register.find(r => r.name === v);
+        if (row) onSelectRow(row);
+      }
+    }}
+      style={{width:'100%',border:'none',outline:'none',background:'transparent',fontFamily:"'DM Sans',sans-serif",fontSize:12,color:isOrphan?C.red:value?C.ink:C.muted,padding:'6px 8px',cursor:'pointer',fontStyle:isOrphan?'italic':'normal'}}>
+      <option value="">— select indicator —</option>
+      {isOrphan && <option value={value} style={{color:C.red}}>⚠ {value} (deleted)</option>}
+      {register.map(r => (
+        <option key={r._id} value={r.name}>
+          {entered.has(r.name) && !isOrphan ? '✓ ' : ''}{r.name}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+// ── Tag ────────────────────────────────────────────────────────────────────────
+function Tag({ value, map }) {
+  const s = map[value] || { bg:'#F3F4F6', color:C.muted };
+  return <span style={{background:s.bg,color:s.color,border:`1px solid ${s.color}33`,borderRadius:3,padding:'2px 7px',fontSize:10,fontFamily:"'IBM Plex Mono',monospace",fontWeight:600,letterSpacing:'0.04em'}}>{value || '—'}</span>;
+}
+const COMP_MAP = { 'None':{bg:'#E8F5E9',color:'#2E7D32'}, 'Partial':{bg:'#FFF8E1',color:'#8B6914'}, 'Full break':{bg:'#FFF0F0',color:'#C62828'} };
+const PIRS_MAP = { 'Approved':{bg:'#E8F5E9',color:'#2E7D32'}, 'Reviewed':{bg:'#FFF8E1',color:'#8B6914'}, 'Drafted':{bg:'#F3F4F6',color:'#6B7280'} };
+const STATUS_MAP = { 'Finalized':{bg:'#E8F5E9',color:'#2E7D32'}, 'In progress':{bg:'#FFF8E1',color:'#8B6914'}, 'Not started':{bg:'#F3F4F6',color:'#6B7280'}, 'Finalized — under review':{bg:'#FFF3E0',color:'#E65100'} };
+
+// ── EditableCell ───────────────────────────────────────────────────────────────
+function EditableCell({ value, field, onChange, results, register, onSelectRow, dictionaryEntries }) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState(value);
+  const ref = useRef(null);
+  useEffect(() => setVal(value), [value]);
+  useEffect(() => { if (editing && ref.current) ref.current.focus(); }, [editing]);
+  const commit = () => { setEditing(false); if (val !== value) onChange(val); };
+
+  if (field.type === 'bool') return (
+    <div onClick={() => onChange(!value)} style={{padding:'7px 8px',cursor:'pointer',display:'flex',alignItems:'center',gap:6,userSelect:'none'}}>
+      <div style={{width:15,height:15,borderRadius:3,border:`2px solid ${value?C.ochre:C.border}`,background:value?C.ochre:'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+        {value && <span style={{color:'#fff',fontSize:10,fontWeight:700,lineHeight:1}}>✓</span>}
+      </div>
+      <span style={{fontSize:11,color:value?C.ochre:C.muted}}>{value ? 'Yes' : 'No'}</span>
+    </div>
+  );
+
+  if (field.type === 'date') return (
+    <input type="date" value={val || ''} onChange={e => { setVal(e.target.value); onChange(e.target.value); }}
+      style={{width:'100%',border:'none',outline:'none',background:'transparent',fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.ink,padding:'7px 8px',cursor:'pointer'}}
+    />
+  );
+
+  if (field.type === 'smart') return (
+    <SmartSelect value={val || ''} options={field.options} onChange={v => { setVal(v); onChange(v); }} placeholder={field.hint || '— select —'} />
+  );
+
+  if (field.type === 'resultsSelect') return (
+    <ResultsSelect value={val || ''} results={results || []} onChange={v => { setVal(v); onChange(v); }} />
+  );
+
+  if (field.type === 'registerSelect') return (
+    <RegisterSelect value={val || ''} register={register || []} onChange={v => { setVal(v); onChange(v); }} onSelectRow={onSelectRow} dictionaryEntries={dictionaryEntries} />
+  );
+
+  // free text
+  if (editing) return (
+    <textarea ref={ref} value={val || ''} onChange={e => setVal(e.target.value)} onBlur={commit}
+      onKeyDown={e => { if (e.key === 'Escape') { setVal(value); setEditing(false); } }}
+      style={{width:'100%',minHeight:56,padding:'6px 8px',border:`1.5px solid ${C.ochre}`,borderRadius:4,outline:'none',fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.ink,resize:'vertical',background:'#FFFDF5'}}
+    />
+  );
+  return (
+    <div onClick={() => setEditing(true)} style={{padding:'7px 8px',cursor:'text',minHeight:32,fontSize:12,fontFamily:"'DM Sans',sans-serif",color:C.ink,lineHeight:1.4}} title={field.hint}>
+      {val ? <span>{val}</span> : <span style={{color:C.muted,fontStyle:'italic',fontSize:11}}>{field.hint || 'Click to edit'}</span>}
+    </div>
+  );
+}
+
+// ── GroupHeaderRow ─────────────────────────────────────────────────────────────
+function GroupHeaderRow({ groups, fields }) {
+  const gmap = {};
+  groups.forEach(g => g.cols.forEach(c => { gmap[c] = g; }));
+  const spans = [];
+  let i = 0;
+  while (i < fields.length) {
+    const g = gmap[fields[i].key];
+    let span = 1;
+    while (i + span < fields.length && gmap[fields[i + span].key] === g) span++;
+    spans.push({ g, span });
+    i += span;
+  }
+  return (
+    <tr>
+      <th style={{background:'#F0EDE6',border:'1px solid #DDD',width:28,padding:0}}></th>
+      {spans.map((s, idx) => (
+        <th key={idx} colSpan={s.span} style={{background:s.g?s.g.bg:'#F5F5F5',border:`1px solid ${s.g?s.g.border:'#DDD'}`,padding:'5px 10px',textAlign:'center',fontFamily:"'IBM Plex Mono',monospace",fontSize:9,fontWeight:700,color:'#333',letterSpacing:'0.05em',textTransform:'uppercase'}}>
+          {s.g ? s.g.label : ''}
+        </th>
+      ))}
+    </tr>
+  );
+}
+
+// ── DataTable ──────────────────────────────────────────────────────────────────
+function DataTable({ data, fields, groups, onUpdate, onDelete, results, register, onSelectRow, dictionaryEntries }) {
+  const th = { background:C.sand, borderBottom:`2px solid ${C.ochreBorder}`, padding:'6px 8px', textAlign:'left', fontFamily:"'IBM Plex Mono',monospace", fontSize:9, fontWeight:600, color:C.ochre, letterSpacing:'0.06em', textTransform:'uppercase', whiteSpace:'nowrap' };
+  const td = { borderBottom:`1px solid ${C.border}`, verticalAlign:'top', padding:0 };
+  return (
+    <div style={{overflowX:'auto',borderRadius:8,border:`1px solid ${C.border}`,background:C.surface}}>
+      <table style={{borderCollapse:'collapse',width:'100%',tableLayout:'fixed'}}>
+        <colgroup>
+          <col style={{width:28}} />
+          {fields.map(f => <col key={f.key} style={{width:f.w}} />)}
+        </colgroup>
+        <thead>
+          {groups && <GroupHeaderRow groups={groups} fields={fields} />}
+          <tr>
+            <th style={{...th,width:28,padding:0}}></th>
+            {fields.map(f => <th key={f.key} style={th} title={f.hint}>{f.label}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((row, idx) => (
+            <tr key={row._id} style={{background:idx%2===0?C.surface:'#FAFAF5'}}>
+              <td style={{...td,textAlign:'center',verticalAlign:'middle'}}>
+                <button onClick={() => onDelete(idx)} style={{background:'none',border:'none',cursor:'pointer',color:C.muted,fontSize:14,padding:'3px 5px'}} title="Delete">×</button>
+              </td>
+              {fields.map(f => (
+                <td key={f.key} style={td}>
+                  {(f.key === 'comparability' || f.key === 'pirsStatus' || f.key === 'status') && row[f.key] ? (
+                    <div style={{padding:'6px 8px',display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+                      <Tag value={row[f.key]} map={f.key === 'comparability' ? COMP_MAP : f.key === 'pirsStatus' ? PIRS_MAP : STATUS_MAP} />
+                      <SmartSelect value={row[f.key]} options={f.options} onChange={v => onUpdate(idx, f.key, v)} />
+                    </div>
+                  ) : (
+                    <EditableCell value={row[f.key]} field={f} onChange={v => onUpdate(idx, f.key, v)} results={results} register={register} onSelectRow={onSelectRow ? (regRow) => onSelectRow(idx, regRow) : undefined} dictionaryEntries={dictionaryEntries} />
+                  )}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ── TabBanner ──────────────────────────────────────────────────────────────────
+function TabBanner({ title, purpose, groups, note }) {
+  return (
+    <div style={{background:'#EEF3F8',border:'1px solid #C5D5E8',borderRadius:8,padding:'16px 20px',marginBottom:18}}>
+      <div style={{fontFamily:"'DM Serif Display',serif",fontSize:19,color:C.ink,marginBottom:6}}>{title}</div>
+      <div style={{fontSize:12,color:C.inkSoft,lineHeight:1.65,marginBottom:groups&&groups.length?12:0}}
+        dangerouslySetInnerHTML={{__html:purpose}} />
+      {note && (
+        <div style={{marginTop:10,background:'#FFF8E1',border:'1px solid #E8D89A',borderRadius:5,padding:'8px 12px',fontSize:11,color:'#6B5010',lineHeight:1.55}}>
+          💡 {note}
+        </div>
+      )}
+      {groups && groups.length > 0 && (
+        <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:note?10:0}}>
+          {groups.map(g => (
+            <span key={g.label} style={{background:g.bg,border:`1px solid ${g.border}`,borderRadius:4,padding:'3px 9px',fontSize:9,fontFamily:"'IBM Plex Mono',monospace",fontWeight:700,color:'#333',letterSpacing:'0.04em',textTransform:'uppercase'}}>
+              {g.label}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Modal ──────────────────────────────────────────────────────────────────────
+function Modal({ title, onClose, children }) {
+  return (
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.42)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000}} onClick={onClose}>
+      <div style={{background:'#fff',borderRadius:12,padding:28,width:580,maxWidth:'95vw',boxShadow:'0 12px 48px rgba(0,0,0,0.2)'}} onClick={e => e.stopPropagation()}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+          <h3 style={{fontFamily:"'DM Serif Display',serif",fontSize:18,color:C.ink}}>{title}</h3>
+          <button onClick={onClose} style={{background:'none',border:'none',fontSize:20,cursor:'pointer',color:C.muted}}>×</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ── EmptyState ─────────────────────────────────────────────────────────────────
+function EmptyState({ label, onExample }) {
+  return (
+    <div style={{border:`2px dashed ${C.ochreBorder}`,borderRadius:10,padding:'40px 32px',textAlign:'center',background:C.ochreLight}}>
+      <div style={{fontSize:30,marginBottom:10}}>📋</div>
+      <div style={{fontSize:14,fontWeight:600,color:C.ink,marginBottom:6}}>No {label} yet</div>
+      <p style={{fontSize:12,color:C.muted,maxWidth:360,margin:'0 auto 16px',lineHeight:1.6}}>Add rows manually, paste from a logframe, or load the demo data to see how the workbook looks populated.</p>
+      <button onClick={onExample} style={{background:C.ochre,color:'#fff',border:'none',borderRadius:6,padding:'8px 18px',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:"'Outfit',sans-serif"}}>Load Example Data</button>
+    </div>
+  );
+}
+
+// ── StubTab ────────────────────────────────────────────────────────────────────
+function StubTab({ icon, title, description }) {
+  return (
+    <div style={{border:`2px dashed ${C.ochreBorder}`,borderRadius:10,padding:'60px 32px',textAlign:'center',background:C.ochreLight,maxWidth:600,margin:'40px auto'}}>
+      <div style={{fontSize:36,marginBottom:12}}>{icon}</div>
+      <div style={{fontFamily:"'DM Serif Display',serif",fontSize:20,color:C.ink,marginBottom:8}}>{title}</div>
+      <p style={{fontSize:13,color:C.muted,lineHeight:1.65}}>{description}</p>
+      <div style={{marginTop:16,background:C.sand,border:`1px solid ${C.ochreBorder}`,borderRadius:5,padding:'6px 14px',display:'inline-block',fontSize:11,fontFamily:"'IBM Plex Mono',monospace",color:C.ochre,fontWeight:600}}>Coming in next build pass</div>
+    </div>
+  );
+}
+
+// ── Excel export ───────────────────────────────────────────────────────────────
+const FOREST = "2D5016";
+const BD = { style:"thin", color:{ rgb:"C0C0C0" } };
+const BA = { top:BD, bottom:BD, left:BD, right:BD };
+function styleH(ws, n) { for (let c=0; c<n; c++) { const a=XLSX.utils.encode_cell({r:0,c}); if (!ws[a]) continue; ws[a].s={font:{bold:true,color:{rgb:"FFFFFF"},name:"Cambria",sz:10},fill:{fgColor:{rgb:FOREST}},alignment:{wrapText:true,vertical:"center",horizontal:"center"},border:BA}; } }
+function styleD(ws, nr, nc) { for (let r=1; r<nr; r++) { const ev=r%2===0; for (let c=0; c<nc; c++) { const a=XLSX.utils.encode_cell({r,c}); if (!ws[a]) ws[a]={t:"s",v:""}; ws[a].s={font:{name:"Calibri",sz:9,color:{rgb:"333333"}},alignment:{wrapText:true,vertical:"top"},border:BA,...(ev?{fill:{fgColor:{rgb:"F7FAF4"}}}:{})}; } } }
+
+function exportAll(results, register, dictionary, tools, ownership, changelog, programInfo) {
+  const wb = XLSX.utils.book_new();
+
+  // Results Framework
+  const rh = RESULTS_FIELDS.map(f => f.label);
+  const rr = results.map(r => RESULTS_FIELDS.map(f => r[f.key] || ''));
+  const ws1 = XLSX.utils.aoa_to_sheet([rh, ...rr]);
+  styleH(ws1, rh.length); styleD(ws1, rr.length+1, rh.length);
+  ws1["!freeze"] = {xSplit:0,ySplit:1}; ws1["!cols"] = RESULTS_FIELDS.map(f => ({wch:Math.round(f.w/7)})); ws1["!rows"] = [{hpt:22},...rr.map(()=>({hpt:55}))];
+  XLSX.utils.book_append_sheet(wb, ws1, "Results Framework");
+
+  // Indicator Register
+  const ih = REGISTER_FIELDS.map(f => f.label);
+  const ir = register.map(r => REGISTER_FIELDS.map(f => r[f.key] || ''));
+  const ws2 = XLSX.utils.aoa_to_sheet([ih, ...ir]);
+  styleH(ws2, ih.length); styleD(ws2, ir.length+1, ih.length);
+  ws2["!freeze"] = {xSplit:2,ySplit:1}; ws2["!cols"] = REGISTER_FIELDS.map(f => ({wch:Math.round(f.w/7)})); ws2["!rows"] = [{hpt:22},...ir.map(()=>({hpt:60}))];
+  XLSX.utils.book_append_sheet(wb, ws2, "Indicator Register");
+
+  // Indicator Dictionary
+  const dh = DICT_FIELDS.map(f => f.label);
+  const dr = dictionary.map(r => DICT_FIELDS.map(f => f.type==='bool' ? (r[f.key]?'Yes':'No') : (r[f.key]||'')));
+  const wsd = XLSX.utils.aoa_to_sheet([dh, ...dr]);
+  styleH(wsd, dh.length); styleD(wsd, dr.length+1, dh.length);
+  // PIRS Status conditional formatting (col 11)
+  for (let r=1; r<dr.length+1; r++) {
+    const a = XLSX.utils.encode_cell({r, c:11}); if (!wsd[a]) continue;
+    const v = (wsd[a].v || ''); const ev = r%2===0;
+    let fill = ev ? {fgColor:{rgb:"F7FAF4"}} : undefined;
+    let font = {name:"Calibri",sz:9,color:{rgb:"333333"}};
+    if (v==='Approved') { fill={fgColor:{rgb:"E8F5E9"}}; font={...font,color:{rgb:"2E7D32"}}; }
+    else if (v==='Reviewed') { fill={fgColor:{rgb:"FFF8E1"}}; font={...font,color:{rgb:"8B6914"}}; }
+    wsd[a].s = {font, fill, alignment:{wrapText:true,vertical:"top"}, border:BA};
+  }
+  wsd["!freeze"] = {xSplit:1,ySplit:1}; wsd["!cols"] = DICT_FIELDS.map(f => ({wch:Math.round(f.w/7)})); wsd["!rows"] = [{hpt:22},...dr.map(()=>({hpt:60}))];
+  XLSX.utils.book_append_sheet(wb, wsd, "Indicator Governance");
+
+  // Monitoring Tools
+  const th2 = TOOLS_FIELDS.map(f => f.label);
+  const tr2 = tools.map(r => TOOLS_FIELDS.map(f => r[f.key] || ''));
+  const wst = XLSX.utils.aoa_to_sheet([th2, ...tr2]);
+  styleH(wst, th2.length);
+  // Status conditional formatting (last col)
+  const statusCol = TOOLS_FIELDS.findIndex(f => f.key === 'status');
+  for (let r=1; r<tr2.length+1; r++) {
+    const a = XLSX.utils.encode_cell({r, c:statusCol}); if (!wst[a]) continue;
+    const v = (wst[a].v || ''); const ev = r%2===0;
+    let fill = ev ? {fgColor:{rgb:"F7FAF4"}} : undefined;
+    let font = {name:"Calibri",sz:9,color:{rgb:"333333"}};
+    if (/finalized/i.test(v) && !/review/i.test(v)) { fill={fgColor:{rgb:"E8F5E9"}}; font={...font,color:{rgb:"2E7D32"}}; }
+    else if (/progress/i.test(v)) { fill={fgColor:{rgb:"FFF8E1"}}; font={...font,color:{rgb:"8B6914"}}; }
+    else if (/not started/i.test(v)) { fill={fgColor:{rgb:"F3F4F6"}}; font={...font,color:{rgb:"6B7280"}}; }
+    else if (/review/i.test(v)) { fill={fgColor:{rgb:"FFF3E0"}}; font={...font,color:{rgb:"E65100"}}; }
+    wst[a].s = {font, fill, alignment:{wrapText:true,vertical:"top"}, border:BA};
+  }
+  styleD(wst, tr2.length+1, th2.length);
+  wst["!freeze"] = {xSplit:2,ySplit:1}; wst["!cols"] = TOOLS_FIELDS.map(f => ({wch:Math.round(f.w/7)})); wst["!rows"] = [{hpt:22},...tr2.map(()=>({hpt:60}))];
+  XLSX.utils.book_append_sheet(wb, wst, "Monitoring Tools");
+
+  // Ownership Matrix
+  const oh = OWN_FIELDS.map(f => f.label);
+  const or2 = ownership.map(r => OWN_FIELDS.map(f => r[f.key] || ''));
+  const ws3 = XLSX.utils.aoa_to_sheet([oh, ...or2]);
+  styleH(ws3, oh.length); styleD(ws3, or2.length+1, oh.length);
+  ws3["!freeze"] = {xSplit:1,ySplit:1}; ws3["!cols"] = OWN_FIELDS.map(f => ({wch:Math.round(f.w/7)})); ws3["!rows"] = [{hpt:22},...or2.map(()=>({hpt:50}))];
+  XLSX.utils.book_append_sheet(wb, ws3, "Ownership Matrix");
+
+  // Change Log
+  const lh = LOG_FIELDS.map(f => f.label);
+  const lr = changelog.map(r => LOG_FIELDS.map(f => r[f.key] || ''));
+  const ws4 = XLSX.utils.aoa_to_sheet([lh, ...lr]);
+  styleH(ws4, lh.length);
+  // comparability conditional (col 6)
+  for (let r=1; r<lr.length+1; r++) {
+    const a = XLSX.utils.encode_cell({r, c:6}); if (!ws4[a]) continue;
+    const v = (ws4[a].v || '').toLowerCase(); const ev = r%2===0;
+    let fill = ev ? {fgColor:{rgb:"F7FAF4"}} : undefined;
+    let font = {name:"Calibri",sz:9,color:{rgb:"333333"}};
+    if (v === 'full break') { fill={fgColor:{rgb:"FFF0F0"}}; font={...font,bold:true,color:{rgb:"C62828"}}; }
+    else if (v === 'partial') { fill={fgColor:{rgb:"FFF8E1"}}; font={...font,color:{rgb:"E65100"}}; }
+    ws4[a].s = {font, fill, alignment:{wrapText:true,vertical:"top"}, border:BA};
+  }
+  styleD(ws4, lr.length+1, lh.length);
+  ws4["!freeze"] = {xSplit:1,ySplit:1}; ws4["!cols"] = LOG_FIELDS.map(f => ({wch:Math.round(f.w/7)})); ws4["!rows"] = [{hpt:22},...lr.map(()=>({hpt:55}))];
+  XLSX.utils.book_append_sheet(wb, ws4, "Change Log");
+
+  // About
+  const prog = programInfo || {};
+  const ad = [
+    ["MEL SYSTEM WORKBOOK",""],["",""],
+    ["Program", prog.programName||""],
+    ["Organization", prog.organization||""],
+    ["Donor", prog.donor||""],
+    ["Period", prog.period||""],
+    ["Country", prog.country||""],
+    ["MEL Lead", prog.melLead||""],
+    ["",""],
+    ["Consultant","Burgen Belltawn"],["Title","MEL Specialist"],["Email","belltawnb@gmail.com"],["Website","https://belltawnb.github.io"],
+    ["",""],
+    ["Tool","MEL System Workbook"],["Tool URL","https://belltawnb.github.io/tools/mel-system-workbook.html"],
+    ["Generated",""+new Date().toLocaleDateString("en-GB",{year:"numeric",month:"long",day:"numeric"})],
+    ["",""],
+    ["Disclaimer","This workbook was produced using a browser-based MEL system design tool."],
+    ["","All content reflects user-entered data. Review before use in production reporting."],
+    ["","Campbell's Law applies: indicators that become targets cease to be good measures."],
+  ];
+  const wsA = XLSX.utils.aoa_to_sheet(ad);
+  wsA["!cols"] = [{wch:22},{wch:64}];
+  if (wsA["A1"]) wsA["A1"].s = {font:{name:"Cambria",sz:14,bold:true,color:{rgb:FOREST}}};
+  [2,3,4,5,6,7,8,10,11,12,13,15,16,17].forEach(r => { const a="A"+(r+1); if (wsA[a]) wsA[a].s={font:{name:"Calibri",sz:10,bold:true,color:{rgb:FOREST}}}; });
+  if (wsA["A20"]) wsA["A20"].s = {font:{name:"Calibri",sz:10,bold:true,color:{rgb:"B8860B"}}};
+  XLSX.utils.book_append_sheet(wb, wsA, "About");
+
+  // Filename
+  let fname = "MEL_System_Workbook";
+  if (prog.programName) fname += "_" + prog.programName.replace(/[^a-zA-Z0-9]/g,'_').replace(/_+/g,'_').slice(0,40);
+  fname += ".xlsx";
+  XLSX.writeFile(wb, fname);
+}
+
+// ── App ────────────────────────────────────────────────────────────────────────
+function App() {
+  const [activeTab, setActiveTab] = useState('results');
+
+  const [results, setResults]     = useState([]);
+  const [register, setRegister]   = useState([]);
+  const [dictionary, setDictionary] = useState([]);
+  const [tools, setTools]         = useState([]);
+  const [ownership, setOwnership] = useState([]);
+  const [changelog, setChangelog] = useState([]);
+  const [programInfo, setProgramInfo] = useState({});
+  const [loaded, setLoaded]       = useState(false);
+
+  const [toast, setToast]         = useState(null);
+  const [modal, setModal]         = useState(null); // 'logframe'|'json'|'reset'|'logframe-conflict'
+  const [importText, setImportText] = useState('');
+  const [importErr, setImportErr] = useState('');
+  const [pendingParse, setPendingParse] = useState(null); // { results, indicators } from parser
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    setResults(load(KEYS.results, []));
+    setRegister(load(KEYS.register, []));
+    setDictionary(load(KEYS.dictionary, []));
+    setTools(load(KEYS.tools, []));
+    setOwnership(load(KEYS.ownership, []));
+    setChangelog(load(KEYS.changelog, []));
+    setProgramInfo(load(KEYS.programInfo, {}));
+    setLoaded(true);
+  }, []);
+
+  // Auto-save on change
+  useEffect(() => { if (loaded) save(KEYS.results, results); }, [results, loaded]);
+  useEffect(() => { if (loaded) save(KEYS.register, register); }, [register, loaded]);
+  useEffect(() => { if (loaded) save(KEYS.dictionary, dictionary); }, [dictionary, loaded]);
+  useEffect(() => { if (loaded) save(KEYS.tools, tools); }, [tools, loaded]);
+  useEffect(() => { if (loaded) save(KEYS.ownership, ownership); }, [ownership, loaded]);
+  useEffect(() => { if (loaded) save(KEYS.changelog, changelog); }, [changelog, loaded]);
+  useEffect(() => { if (loaded) save(KEYS.programInfo, programInfo); }, [programInfo, loaded]);
+
+  const showToast = (msg, type='ok') => { setToast({msg,type}); setTimeout(()=>setToast(null), 2800); };
+
+  const loadExample = () => {
+    setResults(EX_RESULTS);
+    setRegister(EX_REGISTER);
+    setDictionary(EX_DICT);
+    setTools(EX_TOOLS);
+    setOwnership(EX_OWN);
+    setChangelog(EX_LOG);
+    setProgramInfo(EX_PROGRAM);
+    showToast('Loaded demo data — fictional food security program');
+  };
+
+  const upd = (setter) => (idx, field, val) => setter(prev => prev.map((r,i) => i!==idx ? r : {...r,[field]:val}));
+  const add = (setter, fields) => () => setter(prev => [...prev, makeRow(fields)]);
+  const del = (setter) => (idx) => setter(prev => prev.filter((_,i) => i!==idx));
+
+  // Auto-ID for results rows
+  const addResult = () => {
+    setResults(prev => {
+      const newRow = makeRow(RESULTS_FIELDS);
+      return [...prev, newRow];
+    });
+  };
+
+  const handleResultLevelChange = (idx, val) => {
+    setResults(prev => {
+      const updated = prev.map((r,i) => i!==idx ? r : {...r, level:val});
+      // Only suggest ID if current ID is blank
+      if (!prev[idx].resultId) {
+        const suggested = suggestResultId(val, prev.filter((_,i)=>i!==idx));
+        return updated.map((r,i) => i!==idx ? r : {...r, resultId:suggested});
+      }
+      return updated;
+    });
+  };
+
+  // Logframe import handler
+  const handleLogframeImport = () => {
+    setImportErr('');
+    const parsed = parseLogframe(importText, results);
+
+    if (!parsed.indicators.length && !parsed.results.length) {
+      setImportErr('No rows detected. Ensure rows are tab-separated (copy directly from Excel).');
+      return;
+    }
+
+    // Warn if results were found but indicators are missing or suspiciously few
+    const expectedIndicators = parsed.results.length > 0 ? parsed.results.length : 1;
+    if (parsed.results.length > 0 && parsed.indicators.length < Math.max(1, parsed.results.length - 1)) {
+      setImportErr(
+        `Found ${parsed.results.length} result(s) but only ${parsed.indicators.length} indicator(s). ` +
+        `This tool expects indicators in column B with an ID prefix (e.g. "P 1.1 Percentage of…", "OP 1.1.1 Number of…"). ` +
+        `If your logframe uses a different layout, try reorganising it to match this format before pasting. ` +
+        `You can still import what was detected by clicking Import Anyway, or cancel to adjust your logframe.`
+      );
+      // Stash the partial parse so "Import Anyway" can use it
+      setPendingParse({ ...parsed, partial: true });
+      return;
+    }
+
+    if (parsed.results.length > 0 && results.length > 0) {
+      setPendingParse(parsed);
+      setModal('logframe-conflict');
+    } else {
+      applyParsedLogframe(parsed, 'append');
+    }
+  };
+
+  const applyParsedLogframe = (parsed, mode) => {
+    if (parsed.results.length > 0) {
+      if (mode === 'replace') {
+        setResults(parsed.results);
+      } else {
+        setResults(prev => [...prev, ...parsed.results]);
+      }
+    }
+    setRegister(prev => [...prev, ...parsed.indicators]);
+    setModal(null);
+    setImportText('');
+    setPendingParse(null);
+    const parts = [];
+    if (parsed.results.length) parts.push(`${parsed.results.length} result(s)`);
+    if (parsed.indicators.length) parts.push(`${parsed.indicators.length} indicator(s)`);
+    showToast(`Imported ${parts.join(' and ')} from logframe`);
+  };
+
+  const handleJsonImport = () => {
+    setImportErr('');
+    try {
+      const data = JSON.parse(importText);
+      const inds = Array.isArray(data) ? data : (data.indicators || [data]);
+      const rows = inds.map((ind,i) => ({
+        ...makeRow(REGISTER_FIELDS),
+        _id: Date.now()+i,
+        indicatorId:         ind.id || ind.indicatorId || '',
+        name:                ind.name || ind.indicator_name || '',
+        definition:          ind.definition || ind.authoritative_definition || '',
+        unit:                ind.unit || '',
+        numerator:           ind.numerator || '',
+        denominator:         ind.denominator || '',
+        baseline:            ind.baseline || '',
+        target:              ind.target || '',
+        disaggregations:     Array.isArray(ind.disaggregations) ? ind.disaggregations.join(', ') : (ind.disaggregations || ''),
+        frequency:           ind.frequency || '',
+        meansOfVerification: ind.meansOfVerification || '',
+        questionSource:      ind.surveyQuestions || ind.questionSource || '',
+        analysisMethod:      ind.analysisMethod || '',
+        audience:            ind.audience || '',
+      }));
+      setRegister(prev => [...prev, ...rows]);
+      setModal(null); setImportText('');
+      showToast(`Imported ${rows.length} indicator(s) from JSON`);
+    } catch(e) {
+      setImportErr('Invalid JSON. Check format and try again.');
+    }
+  };
+
+  const totalRows = results.length + register.length + ownership.length + changelog.length;
+
+  // Button styles
+  const addBtn = {background:C.ochreLight,color:C.ochre,border:`1.5px solid ${C.ochreBorder}`,borderRadius:6,padding:'7px 16px',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:"'Outfit',sans-serif"};
+  const ghostBtn = {marginTop:10,background:'none',color:C.muted,border:`1px dashed ${C.border}`,borderRadius:6,padding:'8px 20px',fontSize:12,cursor:'pointer',width:'100%',fontFamily:"'Outfit',sans-serif"};
+  const outlineBtn = {background:C.surface,color:C.inkSoft,border:`1px solid ${C.border}`,borderRadius:6,padding:'7px 14px',fontSize:13,cursor:'pointer',fontFamily:"'Outfit',sans-serif"};
+
+  const TABS = [
+    { key:'results',    label:'Results Framework',   count:results.length,   icon:'🎯' },
+    { key:'register',   label:'Indicator Register',   count:register.length,  icon:'📋' },
+    { key:'dictionary', label:'Indicator Governance', count:dictionary.length,icon:'📖' },
+    { key:'tools',      label:'Monitoring Tools',     count:tools.length,     icon:'🔧' },
+    { key:'ownership',  label:'Ownership Matrix',     count:ownership.length, icon:'🔐' },
+    { key:'changelog',  label:'Change Log',           count:changelog.length, icon:'📝' },
+    { key:'about',      label:'About / Export',       count:null,             icon:'📤' },
+  ];
+
+  return (
+    <div style={{background:C.bg,minHeight:'100vh',paddingBottom:80}}>
+
+      {/* Hero */}
+      <div style={{background:`linear-gradient(135deg,${C.ochreLight} 0%,#FFFDF7 100%)`,borderBottom:`1px solid ${C.ochreBorder}`,padding:'26px 32px 18px'}}>
+        <div style={{maxWidth:1440,margin:'0 auto'}}>
+          <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',flexWrap:'wrap',gap:16}}>
+            <div>
+              <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
+                <span style={{fontSize:22}}>📊</span>
+                <span style={{fontFamily:"'IBM Plex Mono',monospace",fontSize:10,fontWeight:600,color:C.ochre,letterSpacing:'0.12em',textTransform:'uppercase',background:C.sand,border:`1px solid ${C.ochreBorder}`,borderRadius:3,padding:'3px 8px'}}>Tool 5 — MEL System</span>
+              </div>
+              <h1 style={{fontFamily:"'DM Serif Display',serif",fontSize:26,color:C.ink,letterSpacing:'-0.02em',marginBottom:4}}>MEL System Workbook</h1>
+              <p style={{color:C.inkSoft,fontSize:13,maxWidth:560,lineHeight:1.6}}>Build your program's indicator measurement system. Data persists between sessions and exports to a formatted Excel workbook.</p>
+            </div>
+            <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
+              <button onClick={loadExample} style={{background:C.ochre,color:'#fff',border:'none',borderRadius:6,padding:'8px 16px',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:"'Outfit',sans-serif"}}>Load Example</button>
+              <button onClick={() => { setModal('logframe'); setImportText(''); setImportErr(''); setPendingParse(null); }} style={{...outlineBtn,color:C.ochre,borderColor:C.ochre,fontWeight:600}}>Paste Logframe</button>
+              <button onClick={() => exportAll(results, register, dictionary, tools, ownership, changelog, programInfo)} disabled={totalRows===0}
+                style={{background:'#2D5016',color:'#fff',border:'none',borderRadius:6,padding:'8px 16px',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:"'Outfit',sans-serif",opacity:totalRows===0?0.5:1}}>
+                ↓ Export Excel
+              </button>
+              <button onClick={() => setModal('reset')} style={{...outlineBtn,fontSize:12}}>Clear All</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Tab nav */}
+      <div style={{borderBottom:`2px solid ${C.border}`,background:C.surface,padding:'0 32px',position:'sticky',top:0,zIndex:100}}>
+        <div style={{maxWidth:1440,margin:'0 auto',display:'flex'}}>
+          {TABS.map(t => (
+            <button key={t.key} onClick={() => setActiveTab(t.key)}
+              style={{background:'none',border:'none',cursor:'pointer',padding:'12px 18px 10px',borderBottom:activeTab===t.key?`3px solid ${C.ochre}`:'3px solid transparent',color:activeTab===t.key?C.ochre:C.inkSoft,fontSize:13,fontWeight:activeTab===t.key?600:400,fontFamily:"'Outfit',sans-serif",display:'flex',alignItems:'center',gap:7,whiteSpace:'nowrap',marginBottom:-2}}>
+              <span>{t.icon}</span>
+              {t.label}
+              {t.count !== null && (
+                <span style={{background:activeTab===t.key?C.ochre:C.border,color:activeTab===t.key?'#fff':C.muted,borderRadius:10,padding:'1px 7px',fontSize:10,fontFamily:"'IBM Plex Mono',monospace",fontWeight:600,minWidth:18,textAlign:'center'}}>{t.count}</span>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Content */}
+      <div style={{maxWidth:1440,margin:'0 auto',padding:'22px 32px'}}>
+
+        {/* ── Tab 1: Results Framework ── */}
+        {activeTab === 'results' && (
+          <div>
+            <TabBanner
+              title="Results Framework"
+              purpose="Defines the program's causal hierarchy — Goal through Outputs — with result statements and key assumptions. This is the skeleton that the Indicator Register maps onto. One row per result."
+              groups={RESULTS_GROUPS}
+              note="Need AI-powered logic analysis of your results chain? The Results Chain Logic Checker tool (coming soon) will offer causal logic review, indicator coverage mapping, and assumption testing."
+            />
+            <div style={{display:'flex',justifyContent:'flex-end',marginBottom:12,gap:8}}>
+              <button onClick={() => { setModal('logframe'); setImportText(''); setImportErr(''); setPendingParse(null); }} style={{...outlineBtn,color:C.ochre,borderColor:C.ochre,fontWeight:600}}>Paste Logframe</button>
+              <button onClick={addResult} style={addBtn}>+ Add Row</button>
+            </div>
+            {results.length === 0 ? <EmptyState label="results framework rows" onExample={loadExample} /> : (
+              <DataTable
+                data={results}
+                fields={RESULTS_FIELDS}
+                groups={RESULTS_GROUPS}
+                onUpdate={(idx, field, val) => {
+                  if (field === 'level') {
+                    handleResultLevelChange(idx, val);
+                  } else {
+                    upd(setResults)(idx, field, val);
+                  }
+                }}
+                onDelete={del(setResults)}
+                results={results}
+                register={register}
+              />
+            )}
+            <button onClick={addResult} style={ghostBtn}>+ Add result row</button>
+          </div>
+        )}
+
+        {/* ── Tab 2: Indicator Register ── */}
+        {activeTab === 'register' && (
+          <div>
+            <TabBanner
+              title="Indicator Register"
+              purpose="The program's authoritative indicator list. Each indicator is linked to a result in the Results Framework. Includes definitions, measurement parameters, data sources, and targets. This is the single source of truth — the Dictionary, Monitoring Tools, and Governance tabs all reference indicators from here."
+              groups={REGISTER_GROUPS}
+            />
+            <div style={{display:'flex',justifyContent:'flex-end',marginBottom:12,gap:8,alignItems:'center'}}>
+              <button onClick={() => { setModal('logframe'); setImportText(''); setImportErr(''); setPendingParse(null); }} style={outlineBtn}>Paste from logframe</button>
+              <button onClick={add(setRegister, REGISTER_FIELDS)} style={addBtn}>+ Add Row</button>
+              <button onClick={() => { setModal('json'); setImportText(''); setImportErr(''); }} style={{background:'none',border:'none',cursor:'pointer',color:C.muted,fontSize:11,textDecoration:'underline',fontFamily:"'DM Sans',sans-serif",padding:'0 4px'}}>Import JSON</button>
+            </div>
+            {register.length === 0 ? <EmptyState label="indicator rows" onExample={loadExample} /> : (
+              <DataTable
+                data={register}
+                fields={REGISTER_FIELDS}
+                groups={REGISTER_GROUPS}
+                onUpdate={upd(setRegister)}
+                onDelete={del(setRegister)}
+                results={results}
+                register={register}
+              />
+            )}
+            <button onClick={add(setRegister, REGISTER_FIELDS)} style={ghostBtn}>+ Add indicator row</button>
+          </div>
+        )}
+
+        {/* ── Tab 3: Indicator Governance ── */}
+        {activeTab === 'dictionary' && (
+          <div>
+            <TabBanner
+              title="Indicator Governance"
+              purpose="Defines the <strong>authoritative meaning, boundaries, and allowed use</strong> of each indicator. This stabilizes indicators over time, even when tools, staff, or context change. Focus on outcome and impact indicators that require governance precision — not every output count needs an entry here."
+              groups={DICT_GROUPS}
+              note="To add an entry: click '+ Add Row', then select an indicator from the dropdown. Fields will pre-populate from the Indicator Register — review and complete the governance-specific fields (inclusion/exclusion rules, interpretive boundaries, PIRS status)."
+            />
+            <div style={{display:'flex',justifyContent:'flex-end',marginBottom:12,gap:8}}>
+              <button onClick={add(setDictionary, DICT_FIELDS)} style={addBtn}>+ Add Row</button>
+            </div>
+            {dictionary.length === 0 ? <EmptyState label="governance entries" onExample={loadExample} /> : (
+              <DataTable
+                data={dictionary}
+                fields={DICT_FIELDS}
+                groups={DICT_GROUPS}
+                onUpdate={upd(setDictionary)}
+                onDelete={del(setDictionary)}
+                results={results}
+                register={register}
+                dictionaryEntries={dictionary}
+                onSelectRow={(idx, regRow) => {
+                  // Pre-populate governance fields from the Register row
+                  setDictionary(prev => prev.map((row, i) => {
+                    if (i !== idx) return row;
+                    return {
+                      ...row,
+                      reqDisagg:    row.reqDisagg    || regRow.disaggregations || '',
+                      sourceFramework: row.sourceFramework || mapSourceFramework(regRow.source, regRow.name),
+                      // Seed population from definition if blank — gives user a starting point
+                      population:   row.population   || (regRow.definition ? regRow.definition.slice(0, 120) : ''),
+                    };
+                  }));
+                }}
+              />
+            )}
+            <button onClick={add(setDictionary, DICT_FIELDS)} style={ghostBtn}>+ Add governance entry</button>
+          </div>
+        )}
+
+        {/* ── Tab 4: Monitoring Tools ── */}
+        {activeTab === 'tools' && (
+          <div>
+            <TabBanner
+              title="Monitoring Tool Registry"
+              purpose="Documents every data collection instrument, its purpose, sampling approach, and which indicators it feeds. This is the bridge between your indicator plan and your field operations. One row per tool."
+              groups={TOOLS_GROUPS}
+              note="The Indicators Covered field is a free-text list. Type indicator names separated by commas, or copy them from the Indicator Register. Keeping these in sync with the Register ensures every indicator has a traceable data source."
+            />
+            <div style={{background:'#FFF8E1',border:'1px solid #E8D89A',borderRadius:6,padding:'9px 14px',marginBottom:16,fontSize:12,color:'#6B5010',lineHeight:1.6}}>
+              💡 Need to design or refine a data collection instrument? The <strong>Survey Planner</strong> tool (coming soon) generates structured, decision-ready survey plans grounded in your program specifications, donor requirements, and logframe.
+            </div>
+            <div style={{display:'flex',justifyContent:'flex-end',marginBottom:12,gap:8}}>
+              <button onClick={() => {
+                // Auto-suggest next tool ID
+                const nextNum = tools.length + 1;
+                setTools(prev => [...prev, { ...makeRow(TOOLS_FIELDS), toolId: 'T' + nextNum }]);
+              }} style={addBtn}>+ Add Tool</button>
+            </div>
+            {tools.length === 0 ? <EmptyState label="monitoring tools" onExample={loadExample} /> : (
+              <DataTable
+                data={tools}
+                fields={TOOLS_FIELDS}
+                groups={TOOLS_GROUPS}
+                onUpdate={upd(setTools)}
+                onDelete={del(setTools)}
+                results={results}
+                register={register}
+              />
+            )}
+            <button onClick={() => {
+              const nextNum = tools.length + 1;
+              setTools(prev => [...prev, { ...makeRow(TOOLS_FIELDS), toolId: 'T' + nextNum }]);
+            }} style={ghostBtn}>+ Add monitoring tool</button>
+          </div>
+        )}
+
+        {/* ── Tab 5: Ownership Matrix ── */}
+        {activeTab === 'ownership' && (
+          <div>
+            <TabBanner
+              title="Ownership Matrix"
+              purpose="Defines who has <strong>authority to define, modify, approve, and retire indicators</strong>, and what documentation and escalation is required."
+              groups={OWN_GROUPS}
+            />
+            <div style={{display:'flex',justifyContent:'flex-end',marginBottom:12}}>
+              <button onClick={add(setOwnership, OWN_FIELDS)} style={addBtn}>+ Add Row</button>
+            </div>
+            {ownership.length === 0 ? <EmptyState label="ownership matrix rows" onExample={loadExample} /> : (
+              <DataTable data={ownership} fields={OWN_FIELDS} groups={OWN_GROUPS} onUpdate={upd(setOwnership)} onDelete={del(setOwnership)} results={results} register={register} />
+            )}
+            <button onClick={add(setOwnership, OWN_FIELDS)} style={ghostBtn}>+ Add governance action</button>
+          </div>
+        )}
+
+        {/* ── Tab 6: Change Log ── */}
+        {activeTab === 'changelog' && (
+          <div>
+            <TabBanner
+              title="Change Log"
+              purpose="Records <strong>why indicators changed and whether comparability was affected</strong>. This is a <strong>decision and risk register</strong>. The indicator dropdown is populated from the Register."
+              groups={LOG_GROUPS}
+            />
+            <div style={{display:'flex',justifyContent:'flex-end',marginBottom:12}}>
+              <button onClick={add(setChangelog, LOG_FIELDS)} style={addBtn}>+ Add Entry</button>
+            </div>
+            {changelog.length === 0 ? <EmptyState label="change log entries" onExample={loadExample} /> : (
+              <DataTable data={changelog} fields={LOG_FIELDS} groups={LOG_GROUPS} onUpdate={upd(setChangelog)} onDelete={del(setChangelog)} results={results} register={register} />
+            )}
+            <button onClick={add(setChangelog, LOG_FIELDS)} style={ghostBtn}>+ Add change log entry</button>
+          </div>
+        )}
+
+        {/* ── Tab 6: About / Export ── */}
+        {activeTab === 'about' && (
+          <div style={{maxWidth:720}}>
+            <TabBanner
+              title="About / Export"
+              purpose="Program metadata and export controls. Information entered here appears in the Excel workbook's About sheet."
+            />
+            {/* Program info form */}
+            <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,padding:'24px 28px',marginBottom:24}}>
+              <div style={{fontFamily:"'DM Serif Display',serif",fontSize:16,color:C.ink,marginBottom:16}}>Program Information</div>
+              {[
+                {key:'programName',label:'Program Name'},
+                {key:'organization',label:'Implementing Organization'},
+                {key:'donor',label:'Donor / Funding Source'},
+                {key:'period',label:'Program Period'},
+                {key:'country',label:'Country / Region'},
+                {key:'melLead',label:'MEL Lead Name'},
+              ].map(f => (
+                <div key={f.key} style={{display:'flex',alignItems:'center',gap:12,marginBottom:12}}>
+                  <label style={{width:220,fontSize:12,fontWeight:600,color:C.inkSoft,fontFamily:"'DM Sans',sans-serif",flexShrink:0}}>{f.label}</label>
+                  <input value={programInfo[f.key]||''} onChange={e => setProgramInfo(prev => ({...prev,[f.key]:e.target.value}))}
+                    style={{flex:1,border:`1px solid ${C.border}`,borderRadius:5,padding:'7px 10px',fontSize:13,fontFamily:"'DM Sans',sans-serif",color:C.ink,outline:'none'}}
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Export controls */}
+            <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,padding:'24px 28px',marginBottom:24}}>
+              <div style={{fontFamily:"'DM Serif Display',serif",fontSize:16,color:C.ink,marginBottom:16}}>Export</div>
+              <button onClick={() => exportAll(results, register, dictionary, tools, ownership, changelog, programInfo)} disabled={totalRows===0}
+                style={{background:'#2D5016',color:'#fff',border:'none',borderRadius:6,padding:'10px 22px',fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:"'Outfit',sans-serif",opacity:totalRows===0?0.5:1,marginRight:12}}>
+                ↓ Export Full Workbook (.xlsx)
+              </button>
+              <span style={{fontSize:12,color:C.muted}}>Exports all tabs as a formatted Excel workbook.</span>
+            </div>
+
+            {/* Branding */}
+            <div style={{background:C.ochreLight,border:`1px solid ${C.ochreBorder}`,borderRadius:8,padding:'20px 24px',fontSize:12,color:C.inkSoft,lineHeight:1.7}}>
+              <div><strong style={{color:C.ink}}>MEL System Workbook</strong> — Tool 5 in the Burgen Belltawn MEL Tools portfolio.</div>
+              <div>Built by <a href="https://belltawnb.github.io" target="_blank" style={{color:C.ochre}}>Burgen Belltawn</a></div>
+              <div style={{marginTop:8,fontSize:11,color:C.muted,fontStyle:'italic'}}>Campbell's Law applies: indicators that become targets cease to be good measures.</div>
+            </div>
+          </div>
+        )}
+
+      </div>
+
+      {/* ── Logframe paste modal ── */}
+      {modal === 'logframe' && (
+        <Modal title="Paste from Logframe" onClose={() => { setModal(null); setImportErr(''); }}>
+          <p style={{fontSize:12,color:C.inkSoft,marginBottom:8,lineHeight:1.6}}>Copy rows directly from Excel (Ctrl+C) and paste below. Results-level rows (Purpose 1:, Output 1.1:, etc.) go to the Results Framework. Indicator rows (P 1.1, OP 1.1.1, etc.) go to the Indicator Register with definitions and other fields mapped automatically.</p>
+          <div style={{background:'#F5F5F5',borderRadius:4,padding:'7px 10px',fontFamily:"'IBM Plex Mono',monospace",fontSize:11,color:C.muted,marginBottom:10,lineHeight:1.7}}>
+            Results detected: col A starting with Purpose 1:, Output 1.2:, Outcome:, Goal:…<br />
+            Indicators detected: col B starting with P 1.1, OP 1.1.1, % of, Number of…<br />
+            Skipped automatically: header rows, definition text, source/MoV/target cells, null values, bullet fragments
+          </div>
+          <textarea value={importText} onChange={e => setImportText(e.target.value)} placeholder="Paste rows from Excel here…"
+            style={{width:'100%',height:160,padding:'10px 12px',borderRadius:6,border:`1.5px solid ${importErr?C.red:C.border}`,fontFamily:"'IBM Plex Mono',monospace",fontSize:12,resize:'vertical',outline:'none'}}
+          />
+          <div style={{marginTop:6,fontSize:11,color:C.muted,lineHeight:1.6}}>
+            <a href="https://belltawnb.github.io/assets/Logframe_Template.xlsx" download
+               style={{color:C.ochre,textDecoration:'none',fontWeight:500}}>
+              Download logframe template ↓
+            </a>
+          </div>
+          {importErr && <div style={{color:C.red,fontSize:12,marginTop:6,lineHeight:1.6}}>⚠ {importErr}</div>}
+          <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:14}}>
+            <button onClick={() => { setModal(null); setImportErr(''); setPendingParse(null); }} style={{background:'none',border:`1px solid ${C.border}`,borderRadius:6,padding:'7px 16px',cursor:'pointer',fontSize:13,color:C.inkSoft}}>Cancel</button>
+            {pendingParse && pendingParse.partial && (
+              <button onClick={() => { const p = {...pendingParse, partial:false}; if (results.length > 0 && p.results.length > 0) { setPendingParse(p); setModal('logframe-conflict'); } else { applyParsedLogframe(p,'append'); } setImportErr(''); }}
+                style={{background:'none',border:`1.5px solid ${C.ochre}`,color:C.ochre,borderRadius:6,padding:'7px 16px',cursor:'pointer',fontSize:13,fontWeight:600}}>Import Anyway</button>
+            )}
+            {!(pendingParse && pendingParse.partial) && (
+              <button onClick={handleLogframeImport} style={{background:C.ochre,color:'#fff',border:'none',borderRadius:6,padding:'7px 16px',cursor:'pointer',fontSize:13,fontWeight:600}}>Import Rows</button>
+            )}
+          </div>
+        </Modal>
+      )}
+
+      {/* ── Logframe conflict modal (Tab 1 already has data) ── */}
+      {modal === 'logframe-conflict' && pendingParse && (
+        <Modal title="Results Framework already has data" onClose={() => { setModal(null); setPendingParse(null); }}>
+          <p style={{fontSize:13,color:C.inkSoft,lineHeight:1.65,marginBottom:16}}>
+            The parser found <strong>{pendingParse.results.length} result(s)</strong> and <strong>{pendingParse.indicators.length} indicator(s)</strong> in your logframe.<br />
+            Your Results Framework already has {results.length} row(s). What would you like to do with the parsed results?
+          </p>
+          <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:20}}>
+            <button onClick={() => applyParsedLogframe(pendingParse,'append')}
+              style={{background:C.ochreLight,border:`1.5px solid ${C.ochreBorder}`,borderRadius:6,padding:'10px 16px',cursor:'pointer',textAlign:'left',fontFamily:"'Outfit',sans-serif"}}>
+              <div style={{fontWeight:600,color:C.ink,fontSize:13}}>Add to existing results</div>
+              <div style={{fontSize:11,color:C.muted,marginTop:2}}>Parsed results are appended. You may need to delete duplicates manually.</div>
+            </button>
+            <button onClick={() => applyParsedLogframe(pendingParse,'replace')}
+              style={{background:'#FFF0F0',border:`1.5px solid ${C.red}55`,borderRadius:6,padding:'10px 16px',cursor:'pointer',textAlign:'left',fontFamily:"'Outfit',sans-serif"}}>
+              <div style={{fontWeight:600,color:C.red,fontSize:13}}>Replace existing results</div>
+              <div style={{fontSize:11,color:C.muted,marginTop:2}}>Current Results Framework rows will be deleted and replaced. This cannot be undone.</div>
+            </button>
+          </div>
+          <div style={{display:'flex',justifyContent:'flex-end'}}>
+            <button onClick={() => { setModal(null); setPendingParse(null); }} style={{background:'none',border:`1px solid ${C.border}`,borderRadius:6,padding:'7px 16px',cursor:'pointer',fontSize:13,color:C.inkSoft}}>Cancel</button>
+          </div>
+        </Modal>
+      )}
+
+      {/* ── JSON import modal ── */}
+      {modal === 'json' && (
+        <Modal title="Import Indicator Data" onClose={() => { setModal(null); setImportErr(''); }}>
+          <p style={{fontSize:12,color:C.inkSoft,marginBottom:12,lineHeight:1.6}}>Paste data exported from the Indicator Quality Reviewer, or any array of indicator objects in JSON format. All matching fields will be mapped to the register.</p>
+          <textarea value={importText} onChange={e => setImportText(e.target.value)} placeholder='[{"name":"...","definition":"...","unit":"..."}]'
+            style={{width:'100%',height:150,padding:'10px 12px',borderRadius:6,border:`1.5px solid ${importErr?C.red:C.border}`,fontFamily:"'IBM Plex Mono',monospace",fontSize:12,resize:'vertical',outline:'none'}}
+          />
+          {importErr && <div style={{color:C.red,fontSize:12,marginTop:6}}>⚠ {importErr}</div>}
+          <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:14}}>
+            <button onClick={() => { setModal(null); setImportErr(''); }} style={{background:'none',border:`1px solid ${C.border}`,borderRadius:6,padding:'7px 16px',cursor:'pointer',fontSize:13,color:C.inkSoft}}>Cancel</button>
+            <button onClick={handleJsonImport} style={{background:C.ochre,color:'#fff',border:'none',borderRadius:6,padding:'7px 16px',cursor:'pointer',fontSize:13,fontWeight:600}}>Import Data</button>
+          </div>
+        </Modal>
+      )}
+
+      {/* ── Reset modal ── */}
+      {modal === 'reset' && (
+        <Modal title="Clear all workbook data?" onClose={() => setModal(null)}>
+          <p style={{fontSize:13,color:C.inkSoft,lineHeight:1.6}}>This deletes all rows across all tabs from storage. This cannot be undone.</p>
+          <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:16}}>
+            <button onClick={() => setModal(null)} style={{background:'none',border:`1px solid ${C.border}`,borderRadius:6,padding:'7px 16px',cursor:'pointer',fontSize:13,color:C.inkSoft}}>Cancel</button>
+            <button onClick={() => { setResults([]); setRegister([]); setDictionary([]); setTools([]); setOwnership([]); setChangelog([]); setProgramInfo({}); setModal(null); showToast('Workbook cleared','warn'); }}
+              style={{background:C.red,color:'#fff',border:'none',borderRadius:6,padding:'7px 16px',cursor:'pointer',fontSize:13,fontWeight:600}}>Clear All</button>
+          </div>
+        </Modal>
+      )}
+
+      {/* ── Toast ── */}
+      {toast && (
+        <div style={{position:'fixed',bottom:28,left:'50%',transform:'translateX(-50%)',background:toast.type==='warn'?'#3D2B22':'#2D5016',color:'#fff',borderRadius:8,padding:'10px 22px',fontSize:13,fontWeight:500,zIndex:9999,boxShadow:'0 4px 24px rgba(0,0,0,0.18)',fontFamily:"'Outfit',sans-serif",whiteSpace:'nowrap'}}>
+          {toast.msg}
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('app')).render(React.createElement(App));
+</script>
+</body>
+</html>
