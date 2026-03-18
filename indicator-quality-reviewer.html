@@ -351,95 +351,260 @@ ${text}
 Respond with ONLY a valid JSON array. No markdown backticks, no explanation, no preamble.`;
 }
 
-// Client-side TSV parser that handles quoted multi-line cells
-function parseTSV(text) {
-  const rows = [];
-  let currentRow = [];
-  let currentCell = "";
-  let inQuote = false;
-  let i = 0;
+// ─── CLIENT-SIDE LOGFRAME PARSER ─────────────────────────────────────────────
+// Handles real-world logframes pasted from Excel.
+// Reassembles quoted multi-line cells before splitting on tabs.
 
-  while (i < text.length) {
-    const ch = text[i];
-
-    if (inQuote) {
-      if (ch === '"') {
-        if (i + 1 < text.length && text[i + 1] === '"') {
-          currentCell += '"';
-          i += 2;
-          continue;
-        }
-        inQuote = false;
-        i++;
-        continue;
-      }
-      currentCell += ch;
-      i++;
-      continue;
+function reassembleQuotedCells(text) {
+  const raw = text.split('\n');
+  const out = [];
+  let buf = '';
+  let openQuotes = 0;
+  for (const line of raw) {
+    const q = (line.match(/"/g) || []).length;
+    openQuotes += q;
+    buf = buf ? buf + ' ' + line.trimEnd() : line.trimEnd();
+    if (openQuotes % 2 === 0) {
+      out.push(buf);
+      buf = '';
+      openQuotes = 0;
     }
-
-    if (ch === '"' && (currentCell === "" || currentCell.match(/^\s*$/))) {
-      inQuote = true;
-      currentCell = "";
-      i++;
-      continue;
-    }
-
-    if (ch === '\t') {
-      currentRow.push(currentCell.trim());
-      currentCell = "";
-      i++;
-      continue;
-    }
-
-    if (ch === '\n' || (ch === '\r' && text[i + 1] === '\n')) {
-      currentRow.push(currentCell.trim());
-      if (currentRow.some(cell => cell.length > 0)) {
-        rows.push(currentRow);
-      }
-      currentRow = [];
-      currentCell = "";
-      i += (ch === '\r') ? 2 : 1;
-      continue;
-    }
-
-    currentCell += ch;
-    i++;
   }
-
-  // Last cell/row
-  currentRow.push(currentCell.trim());
-  if (currentRow.some(cell => cell.length > 0)) {
-    rows.push(currentRow);
-  }
-
-  return rows;
+  if (buf) out.push(buf);
+  return out;
 }
 
-// Pre-process pasted table data: parse TSV, flatten multi-line cells, 
-// and convert to a cleaner format for the AI
-function preprocessTable(text) {
-  // Try TSV parsing first
-  const rows = parseTSV(text);
-  if (rows.length < 2) return text; // Not enough rows, pass as-is
+function splitTSV(line) {
+  const cols = [];
+  let cur = '';
+  let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') { inQ = !inQ; }
+    else if (ch === '\t' && !inQ) { cols.push(cur); cur = ''; }
+    else { cur += ch; }
+  }
+  cols.push(cur);
+  return cols;
+}
 
-  const headers = rows[0];
-  // Rebuild as clean single-line TSV with multi-line content flattened
-  const cleanRows = [headers.map(h => h.replace(/[\n\r]+/g, " ")).join("\t")];
+function parseLogframeClientSide(text) {
+  // Returns { indicators: [...], results: [...] } or null if nothing useful found
 
-  for (let r = 1; r < rows.length; r++) {
-    const row = rows[r];
-    // Skip rows that are all empty or nearly empty
-    if (row.filter(c => c.length > 0).length < 2) continue;
-    const cleanCells = row.map(cell => 
-      cell.replace(/[\n\r]+/g, " ")  // flatten newlines to spaces
-          .replace(/\s+/g, " ")       // collapse whitespace
-          .substring(0, 500)          // truncate very long cells
-    );
-    cleanRows.push(cleanCells.join("\t"));
+  const LEVEL_PATTERNS = [
+    { re:/^goal\s*([\d.]*)[:\s]/i,                level:'Goal',    prefix:'G'  },
+    { re:/^impact\s*([\d.]*)[:\s]/i,              level:'Goal',    prefix:'G'  },
+    { re:/^purpose\s*([\d.]*)[:\s]/i,             level:'Purpose', prefix:'P'  },
+    { re:/^outcome\s*([\d.]*)[:\s]/i,             level:'Outcome', prefix:'OC' },
+    { re:/^output\s*([\d.]+)[:\s]/i,              level:'Output',  prefix:'OP' },
+    { re:/^ops?\s*([\d.]+)[:\s]/i,                level:'Output',  prefix:'OP' },
+    { re:/^activity\s*([\d.]*)[:\s]/i,            level:'Output',  prefix:'OP' },
+    { re:/^intermediate result\s*([\d.]*)[:\s]/i, level:'Outcome', prefix:'OC' },
+    { re:/^ir\s*([\d.]+)[:\s]/i,                  level:'Outcome', prefix:'OC' },
+  ];
+
+  const INDICATOR_ID_PATTERNS = [
+    /^[A-Z]{1,3}\s*\d+[\.\d]*\s+/i,
+    /^\d+\.\d[\d.]*\s+/,
+    /^\d+\.\s+/,
+    /^#\s*of\b/i,
+    /^number of\b/i,
+    /^percent(age)? of\b/i,
+    /^%\s*(of\b|households\b|children\b|beneficiar|local\b|women\b|individ)/i,
+    /^proportion of\b/i,
+    /^rate of\b/i,
+    /^mean\b/i,
+    /^score\b/i,
+    /^index\b/i,
+    /^prevalence\b/i,
+    /^difference in\b/i,
+    /^reduced\b/i,
+  ];
+
+  const COL_B_SKIP = [
+    /^indicator\s*(definition|name|$)/i,
+    /^null$/i,
+    /^source$/i,
+    /^means of/i,
+    /^monitoring/i,
+    /^question source/i,
+    /^numerator$/i,
+    /^denominator$/i,
+    /^reporting freq/i,
+    /^baseline/i,
+    /^target/i,
+    /^unit of dis/i,
+    /^analysis$/i,
+    /^risks/i,
+    /^audience$/i,
+    /^comments$/i,
+    /^T\d+\./i,
+    /^FFP\b/i,
+    /^OFDA\b/i,
+    /^Custom$/i,
+    /^- /,
+    /^\d+%/,
+    /^(twice|once|monthly|quarterly|annually|semi)/i,
+    /^(section|baseline:|target:|mean\s*=)/i,
+  ];
+
+  const HEADER_PATTERNS = [
+    { re:/^indicator\s*def/i,           key:'definition' },
+    { re:/^definition/i,                key:'definition' },
+    { re:/^(data\s*)?source/i,          key:'source' },
+    { re:/^means of ver/i,              key:'meansOfVerification' },
+    { re:/^question\s*source/i,         key:'questionSource' },
+    { re:/^numerator/i,                 key:'numerator' },
+    { re:/^denominator/i,               key:'denominator' },
+    { re:/^(reporting\s*)?freq/i,       key:'frequency' },
+    { re:/^baseline/i,                  key:'baseline' },
+    { re:/^target\s*(value)?$/i,        key:'target' },
+    { re:/^unit of dis/i,               key:'disaggregations' },
+    { re:/^(unit of\s*)?dis.?aggreg/i,  key:'disaggregations' },
+    { re:/^analysis/i,                  key:'analysisMethod' },
+    { re:/^(reporting\s*)?audience/i,   key:'audience' },
+  ];
+
+  let colMap = { definition:2, source:3, meansOfVerification:4, questionSource:6, numerator:7, denominator:8, frequency:9, baseline:10, target:12, disaggregations:13, analysisMethod:14, audience:17 };
+
+  function clean(v) {
+    if (!v) return '';
+    const s = v.replace(/^"+|"+$/g,'').replace(/\s+/g,' ').trim();
+    return s === 'null' ? '' : s;
+  }
+  function mapSource(v) {
+    const vl = v.toLowerCase();
+    if (/baseline|endline|survey/i.test(vl)) return 'Baseline/endline survey';
+    if (/post.?distrib|pdm/i.test(vl))       return 'Post-distribution monitoring';
+    if (/registr/i.test(vl))                 return 'Registration records';
+    if (/distribut/i.test(vl))               return 'Distribution records';
+    if (/carm/i.test(vl))                    return 'CARM records';
+    if (/training|attendance/i.test(vl))     return 'Training attendance';
+    if (/admin/i.test(vl))                   return 'Admin records';
+    return v;
+  }
+  function mapFrequency(v) {
+    const vl = v.toLowerCase();
+    if (/monthly/i.test(vl))                                    return 'Monthly';
+    if (/quarterly/i.test(vl))                                  return 'Quarterly';
+    if (/semi.?annual/i.test(vl))                               return 'Semi-annually';
+    if (/annual/i.test(vl))                                     return 'Annually';
+    if (/baseline.*endline|endline.*baseline|twice/i.test(vl))  return 'Baseline + endline';
+    if (/baseline only/i.test(vl))                              return 'Baseline only';
+    if (/per distrib/i.test(vl))                                return 'Per distribution cycle';
+    if (/continu/i.test(vl))                                    return 'Continuous';
+    return v;
+  }
+  function splitIndicatorId(str) {
+    const lm = str.match(/^([A-Z]{1,3}\s*[\d.]+)\s+(.*)/i);
+    if (lm) return [lm[1].replace(/\s+/g,''), lm[2].trim()];
+    const nm = str.match(/^(\d+(?:\.\d+)+)\.?\s+(.*)/);
+    if (nm) return [nm[1], nm[2].trim()];
+    const sm = str.match(/^(\d+)\.\s+(.*)/);
+    if (sm) return [sm[1], sm[2].trim()];
+    return ['', str];
+  }
+  function levelLabel(level) {
+    if (level === 'Goal') return 'impact';
+    if (level === 'Purpose') return 'outcome';
+    if (level === 'Outcome') return 'outcome';
+    if (level === 'Output') return 'output';
+    return 'output';
   }
 
-  return cleanRows.join("\n");
+  const counters = {};
+  function nextId(prefix) {
+    counters[prefix] = (counters[prefix] || 0) + 1;
+    return prefix + counters[prefix];
+  }
+
+  const lines = reassembleQuotedCells(text);
+  const indicators = [];
+  const seen = new Set();
+  let headerDetected = false;
+  let lastResultId = null;
+  let lastResultLevel = null;
+
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    const cols = splitTSV(line);
+    const c0 = clean(cols[0] || '');
+    const c1 = clean(cols[1] || '');
+
+    // Header detection
+    if (!headerDetected && /^indicator/i.test(c1) && cols.length > 4) {
+      const newMap = {};
+      cols.forEach((h, i) => {
+        const hTrim = (h || '').trim();
+        const match = HEADER_PATTERNS.find(p => p.re.test(hTrim));
+        if (match && !(match.key in newMap)) newMap[match.key] = i;
+      });
+      if (Object.keys(newMap).length >= 3) {
+        colMap = { ...colMap, ...newMap };
+        headerDetected = true;
+      }
+      continue;
+    }
+
+    // Results-level row
+    const levelMatch = LEVEL_PATTERNS.find(lp => lp.re.test(c0));
+    if (levelMatch) {
+      const m = c0.match(levelMatch.re);
+      const numericPart = m && m[1] ? m[1] : null;
+      lastResultId = numericPart ? (levelMatch.prefix + numericPart) : nextId(levelMatch.prefix);
+      lastResultLevel = levelLabel(levelMatch.level);
+      // Also check col B for indicator on same row
+      if (c1 && !COL_B_SKIP.some(p => p.test(c1)) && INDICATOR_ID_PATTERNS.some(p => p.test(c1)) && !seen.has(c1)) {
+        seen.add(c1);
+        const [indId, indName] = splitIndicatorId(c1);
+        const get = (key) => clean(cols[colMap[key]] || '');
+        indicators.push({
+          id: indId || lastResultId + '.1',
+          name: indName || c1,
+          resultsLevel: lastResultLevel,
+          definition: get('definition'),
+          unit: '',
+          numerator: get('numerator'),
+          denominator: get('denominator'),
+          baseline: get('baseline').replace(/^baseline[:\s]*/i,'').trim(),
+          target: get('target').replace(/^target[:\s]*/i,'').trim(),
+          disaggregations: get('disaggregations'),
+          frequency: mapFrequency(get('frequency')),
+          meansOfVerification: mapSource(get('source') || get('meansOfVerification')),
+          surveyQuestions: get('questionSource'),
+          analysisMethod: get('analysisMethod'),
+          audience: get('audience'),
+        });
+      }
+      continue;
+    }
+
+    // Indicator row
+    if (c1 && !COL_B_SKIP.some(p => p.test(c1)) && INDICATOR_ID_PATTERNS.some(p => p.test(c1)) && !seen.has(c1)) {
+      seen.add(c1);
+      const [indId, indName] = splitIndicatorId(c1);
+      const get = (key) => clean(cols[colMap[key]] || '');
+      indicators.push({
+        id: indId || (lastResultId ? lastResultId + '.' + (indicators.length + 1) : String(indicators.length + 1)),
+        name: indName || c1,
+        resultsLevel: lastResultLevel || 'output',
+        definition: get('definition'),
+        unit: '',
+        numerator: get('numerator'),
+        denominator: get('denominator'),
+        baseline: get('baseline').replace(/^baseline[:\s]*/i,'').trim(),
+        target: get('target').replace(/^target[:\s]*/i,'').trim(),
+        disaggregations: get('disaggregations'),
+        frequency: mapFrequency(get('frequency')),
+        meansOfVerification: mapSource(get('source') || get('meansOfVerification')),
+        surveyQuestions: get('questionSource'),
+        analysisMethod: get('analysisMethod'),
+        audience: get('audience'),
+      });
+    }
+  }
+
+  return indicators;
 }
 
 // ─── STYLES ──────────────────────────────────────────────────────────────────
@@ -594,10 +759,23 @@ function IndicatorQualityReviewer() {
   const parseLogframe = async (text) => {
     setParsing(true); setParseError(null);
     try {
-      // Pre-process: if it looks like tab-separated data, parse and clean client-side
-      const cleaned = text.includes("\t") ? preprocessTable(text) : text;
-      
-      const j = await callProxy({ model:"claude-sonnet-4-5-20250929", max_tokens:4096, messages:[{role:"user",content:buildParsePrompt(cleaned)}] });
+      // For paste-table and CSV: try client-side parser first — free, instant, no API call
+      if (inputType !== "paste-text" && text.includes("\t")) {
+        const clientResults = parseLogframeClientSide(text);
+        if (clientResults && clientResults.length > 0) {
+          setIndicators(clientResults);
+          const cmap = {};
+          clientResults.forEach((_, i) => { cmap[i] = runChecks(clientResults[i]); });
+          setChecksMap(cmap);
+          setView(VIEWS.TABLE);
+          setParsing(false);
+          return;
+        }
+        // Parser returned nothing — fall through to AI
+      }
+
+      // AI extraction path: for paste-text, or when client-side parser finds nothing
+      const j = await callProxy({ model:"claude-sonnet-4-5-20250929", max_tokens:4096, messages:[{role:"user",content:buildParsePrompt(text)}] });
       const raw = j.content?.map(b=>b.text||"").join("") || "[]";
       // Robust JSON extraction: find the array in the response
       let clean = raw.replace(/```json|```/g,"").trim();
@@ -805,7 +983,6 @@ function IndicatorQualityReviewer() {
       <div style={{ padding:"14px 24px", borderBottom:`1px solid ${C.border}`, background:C.surface, display:"flex", alignItems:"center", gap:12 }}>
         <div>
           <div style={{ fontFamily:F.display, fontWeight:700, fontSize:15, color:C.text }}>Indicator Quality Reviewer</div>
-          <div style={{ fontFamily:F.mono, fontSize:10, color:C.textDim, letterSpacing:"0.06em" }}>MEL TOOLS</div>
         </div>
         <div style={{ flex:1 }} />
         {copyMsg && <span style={{ fontFamily:F.mono, fontSize:11, color:C.pass, fontWeight:500 }}>{copyMsg}</span>}
@@ -841,7 +1018,7 @@ function IndicatorQualityReviewer() {
                 {rowCount} row{rowCount!==1?"s":""} {overLimit?"— over 50 limit":"detected"}
               </span>
             )}
-            <button onClick={runDemo} style={{ fontSize:11, padding:"4px 14px", background:C.accent, color:"white", border:"none", borderRadius:6, cursor:"pointer", fontFamily:F.body, fontWeight:600 }}>See Demo ⚡</button>
+            <button onClick={runDemo} style={{ fontSize:11, padding:"4px 14px", background:C.accent, color:"white", border:"none", borderRadius:6, cursor:"pointer", fontFamily:F.body, fontWeight:600 }}>Try Demo ⚡</button>
           </div>
 
           <input ref={fileRef} type="file" accept=".csv,.tsv,.txt" style={{ display:"none" }} onChange={handleFile} />
@@ -868,6 +1045,14 @@ function IndicatorQualityReviewer() {
             <div style={{ fontSize:12, color:C.textMid, lineHeight:1.6 }}>
               Tab-separated (Excel/Sheets), comma-separated CSV, or unstructured proposal text. Headers don't need exact names — AI maps columns to fields and flags uncertainty. Maximum 50 indicators per submission — if you have more, run in batches.
             </div>
+          </div>
+
+          <div style={{ marginTop:10, fontSize:11, color:C.textDim, lineHeight:1.6 }}>
+            For best results, include: indicator name, results level, unit, baseline, target, disaggregations, and means of verification.{" "}
+            <a href="https://belltawnb.github.io/assets/Logframe_Template.xlsx" download
+               style={{ color:C.accent, textDecoration:"none", fontWeight:500 }}>
+              Download logframe template ↓
+            </a>
           </div>
         </div>
       )}
