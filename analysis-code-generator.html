@@ -35,7 +35,7 @@ body { font-family: 'Outfit', sans-serif; background: #FAFAF7; color: #2D2D2D; o
 .nav-links a:hover { color: var(--ink); }
 .nav-links a:hover::after { width: 100%; }
 .nav-links .current { color: var(--terra); font-weight: 500; }
-#app { margin-top: 96px; min-height: calc(100vh - 96px); }
+#app { margin-top: 0; min-height: calc(100vh - 96px); }
 @keyframes acg-spin { to { transform: rotate(360deg); } }
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-thumb { background: #E8E8E0; border-radius: 3px; }
@@ -74,7 +74,7 @@ body { font-family: 'Outfit', sans-serif; background: #FAFAF7; color: #2D2D2D; o
     <li><a href="https://belltawnb.github.io/#contact">Contact</a></li>
   </ul>
 </nav>
-<div style="background:#FDF5F0; border-bottom:1px solid #E8C4B4; padding:8px 24px; font-size:11px; color:#6B5549;">
+<div style="margin-top:64px; background:#FDF5F0; border-bottom:1px solid #E8C4B4; padding:8px 24px; font-size:11px; color:#6B5549;">
   🔒 This tool runs on a shared API — a daily usage limit applies.
   Want unlimited access?
   <a href="https://github.com/BelltawnB/mel-tools-api" target="_blank"
@@ -82,6 +82,9 @@ body { font-family: 'Outfit', sans-serif; background: #FAFAF7; color: #2D2D2D; o
     Download the code on GitHub
   </a>
   and use your own Anthropic API key.
+</div>
+<div style="background:#FFFDF0; border-bottom:1px solid #E8E0A8; padding:6px 24px; font-size:11px; color:#7A6A20; display:flex; align-items:center; gap:6px;">
+  ⚠️ Draft tool — functionality may change. Output code should be reviewed before use in production.
 </div>
 <div id="app"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
@@ -940,7 +943,11 @@ function AnalysisCodeGenerator() {
                   </a>
                 </span>
                 <div style={{ fontSize:10, color:"#9A8070", marginTop:2 }}>
-                  Produces a structured analysis plan. Use "Send to Code Generator" on any indicator row to pre-fill this form.
+                  Produces a structured analysis plan. Use "Send to Code Generator" on any indicator row to pre-fill this form.{" "}
+                  <a href="https://belltawnb.github.io/assets/Logframe_Template.xlsx" download
+                     style={{ color:"#C67B5C", textDecoration:"none", fontWeight:500 }}>
+                    Download logframe template ↓
+                  </a>
                 </div>
               </div>
             </div>
